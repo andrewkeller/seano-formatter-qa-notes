@@ -5,7 +5,21 @@ if True:
         from html import escape  # python 3.x
     except ImportError:
         from cgi import escape  # python 2.x
-    import yaml
+    import subprocess
+
+    markdown_compiler = ctx.srcnode.find_resource('concordia/tools/markdown/Markdown.pl')
+    def compile_markdown(txt):
+        p = subprocess.Popen([markdown_compiler.abspath()], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        stdout, _ = p.communicate(input=txt)
+        if p.returncode != 0:
+            bld.fatal('failed assertion: %s' % (p.returncode,))
+        return stdout.strip()
+
+    def compile_single_line_markdown(txt):
+        txt = compile_markdown(txt)
+        if not txt.startswith('<p>') or not txt.endswith('</p>'):
+            bld.fatal('failed assertion: ' + txt)
+        return txt[3:-4]
 
     class qa_notes_render_task(Task.Task):
         def keyword(self):
@@ -15,13 +29,7 @@ if True:
             return ', '.join([node.path_from(node.ctx.launch_node()) for node in self.outputs])
 
         def run(self):
-            releases = []
-            with open(self.inputs[0].abspath(), 'r') as f:
-                for l in yaml.load_all(f):
-                    releases.extend(l)
-                    break
-            release = releases[0]
-            releases = None
+            release = self.inputs[0].read_json()[0]
             with open(self.outputs[0].abspath(), 'w') as f:
                 f.write('''<html><head>''')
                 f.write('''<meta charset="utf-8">''')
@@ -29,26 +37,37 @@ if True:
                 f.write('''<title>QA Notes for CE Mac Client v''')
                 f.write(escape(release['name']))
                 f.write(''' QA Notes</title><style type="text/css">
+.internal-short {
+    display: inline-block;
+    font-weight: bold;
+    margin-bottom: 1em;
+}
+.testing {
+    margin-left: 1em;
+}
+p {
+    margin-top: 0;
+}
+ol, ul {
+    margin-bottom: 1em;
+}
 </style></head><body><h2>CE Mac Client v''')
                 f.write(escape(release['name']))
                 f.write(''' QA Notes</h2><ul>''')
                 for note in release['notes']:
-                    f.write('<li>')
-                    f.write(escape(note.get('internal-short', {}).get('en-US', [None])[0])
+                    f.write('<li><span class="internal-short">')
+                    f.write(compile_single_line_markdown(note.get('internal-short', {}).get('en-US', [None])[0])
                             or '<em>Internal release note missing</em>')
-                    f.write('<div>')
-                    text = note.get('testing', {}).get('en-US', '').splitlines()
-                    text = [x for x in text if x] # prune empty lines
-                    text = [escape(x) for x in text]
-                    if not text: text = ['<em>QA Notes missing</em>']
-                    text = ['<p>' + x + '</p>' for x in text]
-                    f.write(''.join(text))
+                    f.write('</span>')
+                    f.write('<div class="testing">')
+                    f.write(compile_markdown(note.get('testing', {}).get('en-US', ''))
+                            or '<em>QA Notes missing</em>')
                     f.write('</div></li>')
                 f.write('''</ul></body></html>''')
             return 0
 
 
     t = qa_notes_render_task(env=bld.env)
-    t.set_inputs(bld.env.SEANO_EXPORT_YAML_NODE)
+    t.set_inputs(bld.env.SEANO_EXPORT_JSON_NODE)
     t.set_outputs(bld.path.find_or_declare('qa-notes.html'))
     bld.add_to_group(t)

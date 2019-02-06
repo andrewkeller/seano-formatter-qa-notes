@@ -5,6 +5,7 @@ if True:
         from html import escape  # python 3.x
     except ImportError:
         from cgi import escape  # python 2.x
+    import re
     import subprocess
 
     markdown_compiler = ctx.srcnode.find_resource('concordia/tools/markdown/Markdown.pl')
@@ -20,6 +21,17 @@ if True:
         if not txt.startswith('<p>') or not txt.endswith('</p>'):
             bld.fatal('failed assertion: ' + txt)
         return txt[3:-4]
+
+    jira_url_regex = re.compile(r'^https?://[^/]*jira[^/]*/browse/([A-Z]+\-[0-9]+)$')
+    redmine_url_regex = re.compile(r'^https?://[^/]*redmine[^/]*/issues/([0-9]+)$')
+    def compile_ticket_url(url):
+        m = jira_url_regex.match(url)
+        if m:
+            return '<a href="' + url + '" target="_blank">' + m.group(1) + '</a>'
+        m = redmine_url_regex.match(url)
+        if m:
+            return '<a href="' + url + '" target="_blank">' + m.group(1) + '</a>'
+        bld.fatal("Don't know how to display URL in QA Notes: %s" % (url,))
 
     class qa_notes_render_task(Task.Task):
         def keyword(self):
@@ -42,6 +54,11 @@ if True:
     font-weight: bold;
     margin-bottom: 1em;
 }
+.ticket {
+    display: inline-block;
+    margin-left: 1em;
+    font-size: 90%;
+}
 .testing {
     margin-left: 1em;
 }
@@ -59,6 +76,10 @@ ol, ul {
                     f.write(compile_single_line_markdown(note.get('internal-short', {}).get('en-US', [None])[0])
                             or '<em>Internal release note missing</em>')
                     f.write('</span>')
+                    for t in note.get('tickets', []):
+                        f.write('<span class="ticket">')
+                        f.write(compile_ticket_url(t))
+                        f.write('</span>')
                     f.write('<div class="testing">')
                     f.write(compile_markdown(note.get('testing', {}).get('en-US', ''))
                             or '<em>QA Notes missing</em>')

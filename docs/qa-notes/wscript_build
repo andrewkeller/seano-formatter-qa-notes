@@ -1,6 +1,7 @@
 bld.recurse('../seano-export')
 if True:
     from waflib import Task
+    import datetime
     try:
         from html import escape  # python 3.x
     except ImportError:
@@ -34,6 +35,8 @@ if True:
         bld.fatal("Don't know how to display URL in QA Notes: %s" % (url,))
 
     class qa_notes_render_task(Task.Task):
+        vars = ['CURRENT_SOURCE_VERSION']
+
         def keyword(self):
             return 'Rendering QA Notes'
 
@@ -48,11 +51,10 @@ if True:
                 f.write('''<meta name="viewport" content="width=device-width, initial-scale=1.0">''')
                 f.write('''<title>QA Notes for CE Mac Client v''')
                 f.write(escape(release['name']))
-                f.write(''' QA Notes</title><style type="text/css">
+                f.write('''</title><style type="text/css">
 .internal-short {
     display: inline-block;
-    font-weight: bold;
-    margin-bottom: 1em;
+    margin: 0 0 1em 0;
 }
 .ticket {
     display: inline-block;
@@ -68,14 +70,20 @@ p {
 ol, ul {
     margin-bottom: 1em;
 }
-</style></head><body><h2>CE Mac Client v''')
+</style></head><body><h2>QA Notes for CE Mac Client v''')
                 f.write(escape(release['name']))
-                f.write(''' QA Notes</h2><ul>''')
+                f.write('</h2><p>Commit <code>')
+                f.write(self.bld.env.CURRENT_SOURCE_VERSION)
+                f.write('</code>; built on ')
+                f.write(datetime.datetime.today().strftime('%m/%d/%Y at %I:%M %p %Z'))
+                f.write('</p><h3>Changes since version ')
+                f.write(escape(' and '.join(release['after'])))
+                f.write(':</h3><ul>')
                 for note in release['notes']:
-                    f.write('<li><span class="internal-short">')
+                    f.write('<li><h4 class="internal-short">')
                     f.write(compile_single_line_markdown(note.get('internal-short', {}).get('en-US', [None])[0])
                             or '<em>Internal release note missing</em>')
-                    f.write('</span>')
+                    f.write('</h4>')
                     for t in note.get('tickets', []):
                         f.write('<span class="ticket">')
                         f.write(compile_ticket_url(t))

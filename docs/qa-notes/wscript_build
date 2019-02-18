@@ -44,14 +44,39 @@ if True:
             return ', '.join([node.path_from(node.ctx.launch_node()) for node in self.outputs])
 
         def run(self):
-            release = self.inputs[0].read_json()[0]
+            _next_uid = [0]
+            def get_uid():
+                _next_uid[0] = _next_uid[0] + 1
+                return _next_uid[0]
+            releases = self.inputs[0].read_json()
             with open(self.outputs[0].abspath(), 'w') as f:
                 f.write('''<html><head>''')
                 f.write('''<meta charset="utf-8">''')
                 f.write('''<meta name="viewport" content="width=device-width, initial-scale=1.0">''')
                 f.write('''<title>QA Notes for CE Mac Client v''')
-                f.write(escape(release['name']))
+                f.write(escape(releases[0]['name']))
                 f.write('''</title><style type="text/css">
+.release-head {
+    background: #E9E9E9;
+    padding: 0.5em;
+    margin-bottom: 0.2em;
+}
+
+.release-head > .release-name {
+    display: inline-block;
+    font-size: 110%;
+    font-weight: bold;
+}
+
+.release-head > .release-since {
+    display: inline-block;
+    margin-left: 1em;
+}
+
+.release-head > .show-release, .release-head > .hide-release {
+    float: right;
+}
+
 .internal-short {
     display: inline-block;
     margin: 0 0 1em 0;
@@ -70,33 +95,65 @@ p {
 ol, ul {
     margin-bottom: 1em;
 }
-</style></head><body><h2>QA Notes for CE Mac Client v''')
-                f.write(escape(release['name']))
+</style><script>
+function showRelease(id) {
+    document.getElementById('show-release-' + id).style.display = 'none';
+    document.getElementById('hide-release-' + id).style.display = 'inline-block';
+    document.getElementById('release-body-' + id).style.display = 'block';
+}
+function hideRelease(id) {
+    document.getElementById('show-release-' + id).style.display = 'inline-block';
+    document.getElementById('hide-release-' + id).style.display = 'none';
+    document.getElementById('release-body-' + id).style.display = 'none';
+}
+</script></head><body><h2>QA Notes for CE Mac Client v''')
+                f.write(escape(releases[0]['name']))
                 f.write('</h2><p>Commit <code>')
                 f.write(self.bld.env.CURRENT_SOURCE_VERSION)
                 f.write('</code>; built on ')
                 f.write(datetime.datetime.today().strftime('%m/%d/%Y at %I:%M %p %Z'))
-                f.write('</p><h3>Changes since version ')
-                f.write(escape(' and '.join(release['after'])))
-                f.write(':</h3>')
-                if not release['notes']:
-                    f.write('<p><em>No changes</em></p>')
-                else:
-                    f.write('<ul>')
-                    for note in release['notes']:
-                        f.write('<li><h4 class="internal-short">')
-                        f.write(compile_single_line_markdown(note.get('internal-short', {}).get('en-US', [None])[0])
-                                or '<em>Internal release note missing</em>')
-                        f.write('</h4>')
-                        for t in note.get('tickets', []):
-                            f.write('<span class="ticket">')
-                            f.write(compile_ticket_url(t))
-                            f.write('</span>')
-                        f.write('<div class="testing">')
-                        f.write(compile_markdown(note.get('testing', {}).get('en-US', ''))
-                                or '<em>QA Notes missing</em>')
-                        f.write('</div></li>')
-                    f.write('</ul>')
+                f.write('</p>')
+                release_count = 0
+                for release in releases:
+                    release_count = release_count + 1
+                    if release_count > 5:
+                        break
+                    release_div_id = get_uid()
+                    f.write('<div class="release-head"><span class="release-name">Changes in ')
+                    f.write(escape(release['name']))
+                    f.write('</span><span class="release-since">(since ')
+                    f.write(escape(' and '.join(release['after'])))
+                    f.write(')</span>')
+                    f.write('<span class="show-release" id="show-release-%d" style="display:%s">' \
+                            '''<a href="javascript:showRelease('%d')">Show</a></span>''' % (
+                                release_div_id, 'inline-block' if release_count > 1 else 'none', release_div_id))
+                    f.write('<span class="hide-release" id="hide-release-%d" style="display:%s">' \
+                            '''<a href="javascript:hideRelease('%d')">Hide</a></span>''' % (
+                                release_div_id, 'none' if release_count > 1 else 'inline-block', release_div_id))
+                    f.write('</div>') # end of "release-head" div
+                    f.write('<div id="release-body-%d" style="display:%s">' % (
+                            release_div_id, 'none' if release_count > 1 else 'block'))
+                    if not release['notes']:
+                        f.write('<p><em>No changes</em></p>')
+                    else:
+                        f.write('<ul>')
+                        for note in release['notes']:
+                            f.write('<li><h4 class="internal-short">')
+                            head = note.get('internal-short', {}).get('en-US', [None])[0]
+                            if head and type(head) == dict:
+                                head = head.keys()[0]
+                            f.write(compile_single_line_markdown(head or 'Internal release note missing'))
+                            f.write('</h4>')
+                            for t in note.get('tickets', []):
+                                f.write('<span class="ticket">')
+                                f.write(compile_ticket_url(t))
+                                f.write('</span>')
+                            f.write('<div class="testing">')
+                            f.write(compile_markdown(note.get('testing', {}).get('en-US', '')
+                                    or '_QA Notes missing_'))
+                            f.write('</div></li>')
+                        f.write('</ul>')
+                    f.write('</div>')
                 f.write('''</body></html>''')
             return 0
 

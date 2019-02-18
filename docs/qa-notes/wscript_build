@@ -78,21 +78,26 @@ ol, ul {
                 f.write(datetime.datetime.today().strftime('%m/%d/%Y at %I:%M %p %Z'))
                 f.write('</p><h3>Changes since version ')
                 f.write(escape(' and '.join(release['after'])))
-                f.write(':</h3><ul>')
-                for note in release['notes']:
-                    f.write('<li><h4 class="internal-short">')
-                    f.write(compile_single_line_markdown(note.get('internal-short', {}).get('en-US', [None])[0])
-                            or '<em>Internal release note missing</em>')
-                    f.write('</h4>')
-                    for t in note.get('tickets', []):
-                        f.write('<span class="ticket">')
-                        f.write(compile_ticket_url(t))
-                        f.write('</span>')
-                    f.write('<div class="testing">')
-                    f.write(compile_markdown(note.get('testing', {}).get('en-US', ''))
-                            or '<em>QA Notes missing</em>')
-                    f.write('</div></li>')
-                f.write('''</ul></body></html>''')
+                f.write(':</h3>')
+                if not release['notes']:
+                    f.write('<p><em>No changes</em></p>')
+                else:
+                    f.write('<ul>')
+                    for note in release['notes']:
+                        f.write('<li><h4 class="internal-short">')
+                        f.write(compile_single_line_markdown(note.get('internal-short', {}).get('en-US', [None])[0])
+                                or '<em>Internal release note missing</em>')
+                        f.write('</h4>')
+                        for t in note.get('tickets', []):
+                            f.write('<span class="ticket">')
+                            f.write(compile_ticket_url(t))
+                            f.write('</span>')
+                        f.write('<div class="testing">')
+                        f.write(compile_markdown(note.get('testing', {}).get('en-US', ''))
+                                or '<em>QA Notes missing</em>')
+                        f.write('</div></li>')
+                    f.write('</ul>')
+                f.write('''</body></html>''')
             return 0
 
 

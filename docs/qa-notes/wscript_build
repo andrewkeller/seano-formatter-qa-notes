@@ -56,32 +56,42 @@ if True:
                 f.write('''<title>QA Notes for CE Mac Client v''')
                 f.write(escape(releases[0]['name']))
                 f.write('''</title><style type="text/css">
+* {
+    font-family: sans-serif;
+}
+pre {
+    overflow: scroll;
+}
+code {
+    font-family: Courier, monospace;
+}
+
 .release-head {
     background: #E9E9E9;
     padding: 0.5em;
     margin-bottom: 0.2em;
 }
-
 .release-head > .release-name {
     display: inline-block;
     font-size: 110%;
     font-weight: bold;
 }
-
 .release-head > .release-since {
     display: inline-block;
     margin-left: 1em;
 }
-
 .release-head > .show-release, .release-head > .hide-release {
     float: right;
 }
 
-.internal-short {
+.note-head {
     display: inline-block;
     margin: 0 0 1em 0;
 }
-.ticket {
+.note-head > .internal-short {
+    font-weight: bold;
+}
+.note-head > .ticket {
     display: inline-block;
     margin-left: 1em;
     font-size: 90%;
@@ -94,6 +104,9 @@ p {
 }
 ol, ul {
     margin-bottom: 1em;
+}
+li > ul, li > ol {
+    margin-bottom: 0;
 }
 </style><script>
 function showRelease(id) {
@@ -148,12 +161,12 @@ function hideTechnical(id) {
                     else:
                         f.write('<ul>')
                         for note in release['notes']:
-                            f.write('<li><h4 class="internal-short">')
+                            f.write('<li><span class="note-head"><span class="internal-short">')
                             head = note.get('internal-short', {}).get('en-US', [None])[0]
                             if head and type(head) == dict:
                                 head = head.keys()[0]
                             f.write(compile_single_line_markdown(head or 'Internal release note missing'))
-                            f.write('</h4>')
+                            f.write('</span>') # internal-short
                             for t in note.get('tickets', []):
                                 f.write('<span class="ticket">')
                                 f.write(compile_ticket_url(t))
@@ -167,6 +180,8 @@ function hideTechnical(id) {
                                 f.write('<span class="ticket hide-technical" id="hide-technical-%d" style="display:none">' \
                                         '''<a href="javascript:hideTechnical('%d')">Fewer details</a></span>''' % (
                                             tech_id, tech_id))
+                            f.write('</span>') # note-head
+                            if technical:
                                 f.write('<div class="technical" id="technical-%d" style="display:none">' % (tech_id,))
                                 f.write(compile_markdown(technical))
                                 f.write('</div>')

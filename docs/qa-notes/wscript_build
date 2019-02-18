@@ -86,7 +86,7 @@ if True:
     margin-left: 1em;
     font-size: 90%;
 }
-.testing {
+.testing, .technical {
     margin-left: 1em;
 }
 p {
@@ -105,6 +105,16 @@ function hideRelease(id) {
     document.getElementById('show-release-' + id).style.display = 'inline-block';
     document.getElementById('hide-release-' + id).style.display = 'none';
     document.getElementById('release-body-' + id).style.display = 'none';
+}
+function showTechnical(id) {
+    document.getElementById('show-technical-' + id).style.display = 'none';
+    document.getElementById('hide-technical-' + id).style.display = 'inline-block';
+    document.getElementById('technical-' + id).style.display = 'block';
+}
+function hideTechnical(id) {
+    document.getElementById('show-technical-' + id).style.display = 'inline-block';
+    document.getElementById('hide-technical-' + id).style.display = 'none';
+    document.getElementById('technical-' + id).style.display = 'none';
 }
 </script></head><body><h2>QA Notes for CE Mac Client v''')
                 f.write(escape(releases[0]['name']))
@@ -148,6 +158,18 @@ function hideRelease(id) {
                                 f.write('<span class="ticket">')
                                 f.write(compile_ticket_url(t))
                                 f.write('</span>')
+                            technical = note.get('technical', {}).get('en-US', '')
+                            if technical:
+                                tech_id = get_uid()
+                                f.write('<span class="ticket show-technical" id="show-technical-%d">' \
+                                        '''<a href="javascript:showTechnical('%d')">More details</a></span>''' % (
+                                            tech_id, tech_id))
+                                f.write('<span class="ticket hide-technical" id="hide-technical-%d" style="display:none">' \
+                                        '''<a href="javascript:hideTechnical('%d')">Fewer details</a></span>''' % (
+                                            tech_id, tech_id))
+                                f.write('<div class="technical" id="technical-%d" style="display:none">' % (tech_id,))
+                                f.write(compile_markdown(technical))
+                                f.write('</div>')
                             f.write('<div class="testing">')
                             f.write(compile_markdown(note.get('testing', {}).get('en-US', '')
                                     or '_QA Notes missing_'))

@@ -59,15 +59,35 @@ if True:
 * {
     font-family: sans-serif;
 }
+a {
+    color: #0175bb; /* Bahama */
+}
+a:visited {
+    color: #1997EB; /* Denim */
+}
 pre {
     overflow: scroll;
+    padding: 0.6em;
+    margin-left: 1.5em;
+    background-color: #F4FAFB; /* Lily White */
+    border: 0.05em solid #BDE6FE; /* French Pass */
+    border-radius: 0.2em;
 }
 code {
+    display: inline-block;
     font-family: Courier, monospace;
+    padding: 0.1em 0.2em 0.1em 0.2em;
+    background-color: #F4FAFB; /* Lily White */
+    border: 0.05em solid #BDE6FE; /* French Pass */
+    border-radius: 0.2em;
+}
+pre > code {
+    padding: 0;
+    border: none;
 }
 
 .release-head {
-    background: #E9E9E9;
+    background: #8DD2FC; /* Cornflower */
     padding: 0.5em;
     margin-bottom: 0.2em;
 }
@@ -82,6 +102,9 @@ code {
 }
 .release-head > .show-release, .release-head > .hide-release {
     float: right;
+}
+.release-head > .show-release > a, .release-head > .hide-release > a {
+    color: black;
 }
 
 .note-head {
@@ -107,6 +130,41 @@ ol, ul {
 }
 li > ul, li > ol {
     margin-bottom: 0;
+}
+@media (prefers-color-scheme: dark) {
+    * {
+        background-color: black;
+        color: white;
+    }
+    a {
+        color: #8DD2FC; /* Cornflower */
+    }
+    a:visited {
+        color: #E5F5FE; /* Aqua Spring */
+    }
+    pre {
+        background-color: #101030; /* Custom dark blue */
+        border: 0.1em solid #07466D; /* Regal Blue */
+        border-radius: 0.3em;
+    }
+    code {
+        background-color: #101030; /* Custom dark blue */
+        border: 0.1em solid #07466D; /* Regal Blue */
+        border-radius: 0.3em;
+    }
+    pre > code {
+        border: none;
+    }
+    .release-head,
+    .release-head > .release-name,
+    .release-head > .release-since,
+    .release-head > .show-release > a,
+    .release-head > .hide-release > a {
+        background-color: #0175bb; /* Bahama */
+    }
+    .release-head > .show-release > a, .release-head > .hide-release > a {
+        color: white;
+    }
 }
 </style><script>
 function showRelease(id) {

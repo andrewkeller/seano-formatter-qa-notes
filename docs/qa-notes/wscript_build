@@ -44,6 +44,7 @@ if True:
                 f.write('''</title><style type="text/css">
 * {
     font-family: sans-serif;
+    -webkit-text-size-adjust: 100%;
 }
 a {
     color: #0175bb; /* Bahama */

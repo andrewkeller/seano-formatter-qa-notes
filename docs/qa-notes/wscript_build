@@ -7,21 +7,6 @@ if True:
     except ImportError:
         from cgi import escape  # python 2.x
     import re
-    import subprocess
-
-    markdown_compiler = ctx.srcnode.find_resource('concordia/tools/markdown/Markdown.pl')
-    def compile_markdown(txt):
-        p = subprocess.Popen([markdown_compiler.abspath()], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        stdout, _ = p.communicate(input=txt)
-        if p.returncode != 0:
-            bld.fatal('failed assertion: %s' % (p.returncode,))
-        return stdout.strip()
-
-    def compile_single_line_markdown(txt):
-        txt = compile_markdown(txt)
-        if not txt.startswith('<p>') or not txt.endswith('</p>'):
-            bld.fatal('failed assertion: ' + txt)
-        return txt[3:-4]
 
     jira_url_regex = re.compile(r'^https?://[^/]*jira[^/]*/browse/([A-Z]+\-[0-9]+)$')
     redmine_url_regex = re.compile(r'^https?://[^/]*redmine[^/]*/issues/([0-9]+)$')
@@ -223,7 +208,7 @@ function hideTechnical(id) {
                             head = note.get('internal-short', {}).get('en-US', [None])[0]
                             if head and type(head) == dict:
                                 head = head.keys()[0]
-                            f.write(compile_single_line_markdown(head or 'Internal release note missing'))
+                            f.write(self.bld.seano_markup_line_to_html(head or 'Internal release note missing'))
                             f.write('</span>') # internal-short
                             for t in note.get('tickets', []):
                                 f.write('<span class="ticket">')
@@ -241,10 +226,10 @@ function hideTechnical(id) {
                             f.write('</span>') # note-head
                             if technical:
                                 f.write('<div class="technical" id="technical-%d" style="display:none">' % (tech_id,))
-                                f.write(compile_markdown(technical))
+                                f.write(self.bld.seano_markup_to_html(technical))
                                 f.write('</div>')
                             f.write('<div class="testing">')
-                            f.write(compile_markdown(note.get('testing', {}).get('en-US', '')
+                            f.write(self.bld.seano_markup_to_html(note.get('testing', {}).get('en-US', '')
                                     or '_QA Notes missing_'))
                             f.write('</div></li>')
                         f.write('</ul>')

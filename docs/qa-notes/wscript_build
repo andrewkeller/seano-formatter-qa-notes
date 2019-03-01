@@ -118,6 +118,9 @@ pre > code {
     padding: 0.2em 0.7em 0.2em 0.7em;
     background: #BDE6FE; /* French Pass */
 }
+.rnhover {
+    background: #BDE6FE; /* French Pass */
+}
 .public-release-notes, .internal-release-notes, .testing, .technical {
     margin-left: 1em;
 }
@@ -170,6 +173,9 @@ li > ul, li > ol {
     .release-subhead > .hide-release-notes > a, .release-subhead > .hide-qa-notes > a {
         color: black;
         background: #8DD2FC; /* Cornflower */
+    }
+    .rnhover {
+        background: #0175bb; /* Bahama */
     }
 }
 </style><script>
@@ -285,8 +291,16 @@ function hideTechnical(id) {
                         return
                     f.write('<ul>')
                     for n in lst:
-                        f.write('<li>')
+                        styles = ['r%dp%d' % (release_notes_id, t) for t in n['tags']]
+                        f.write('<li><span class="')
+                        f.write(' '.join(styles))
+                        f.write('" onmouseover="')
+                        f.write(';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', true)})''' % (s,) for s in styles]))
+                        f.write('" onmouseleave="')
+                        f.write(';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', false)})''' % (s,) for s in styles]))
+                        f.write('">')
                         f.write(self.bld.seano_markup_line_to_html(n['head']))
+                        f.write('</span>')
                         write_lst(n['children'])
                         f.write('</li>')
                     f.write('</ul>')

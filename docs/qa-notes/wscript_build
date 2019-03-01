@@ -105,7 +105,20 @@ pre > code {
     margin-left: 1em;
     font-size: 90%;
 }
-.testing, .technical {
+.release-subhead > .show-release-notes, .release-subhead > .show-qa-notes {
+    display: inline-block;
+    margin-left: 1em;
+    margin-bottom: 0.1em;
+    padding: 0.2em 0.7em 0.2em 0.7em;
+}
+.release-subhead > .hide-release-notes, .release-subhead > .hide-qa-notes {
+    display: inline-block;
+    margin-left: 1em;
+    margin-bottom: 0.1em;
+    padding: 0.2em 0.7em 0.2em 0.7em;
+    background: #BDE6FE; /* French Pass */
+}
+.public-release-notes, .internal-release-notes, .testing, .technical {
     margin-left: 1em;
 }
 p {
@@ -151,6 +164,13 @@ li > ul, li > ol {
     .release-head > .show-release > a, .release-head > .hide-release > a {
         color: white;
     }
+    .release-subhead > .hide-release-notes, .release-subhead > .hide-qa-notes {
+        background: #8DD2FC; /* Cornflower */
+    }
+    .release-subhead > .hide-release-notes > a, .release-subhead > .hide-qa-notes > a {
+        color: black;
+        background: #8DD2FC; /* Cornflower */
+    }
 }
 </style><script>
 function showRelease(id) {
@@ -162,6 +182,26 @@ function hideRelease(id) {
     document.getElementById('show-release-' + id).style.display = 'inline-block';
     document.getElementById('hide-release-' + id).style.display = 'none';
     document.getElementById('release-body-' + id).style.display = 'none';
+}
+function showReleaseNotes(id) {
+    document.getElementById('show-release-notes-' + id).style.display = 'none';
+    document.getElementById('hide-release-notes-' + id).style.display = 'inline-block';
+    document.getElementById('release-notes-' + id).style.display = 'block';
+}
+function hideReleaseNotes(id) {
+    document.getElementById('show-release-notes-' + id).style.display = 'inline-block';
+    document.getElementById('hide-release-notes-' + id).style.display = 'none';
+    document.getElementById('release-notes-' + id).style.display = 'none';
+}
+function showQaNotes(id) {
+    document.getElementById('show-qa-notes-' + id).style.display = 'none';
+    document.getElementById('hide-qa-notes-' + id).style.display = 'inline-block';
+    document.getElementById('qa-notes-' + id).style.display = 'block';
+}
+function hideQaNotes(id) {
+    document.getElementById('show-qa-notes-' + id).style.display = 'inline-block';
+    document.getElementById('hide-qa-notes-' + id).style.display = 'none';
+    document.getElementById('qa-notes-' + id).style.display = 'none';
 }
 function showTechnical(id) {
     document.getElementById('show-technical-' + id).style.display = 'none';
@@ -210,14 +250,62 @@ function hideTechnical(id) {
             return release_div_id
 
         def write_release_body(self, f, release, is_first_release, release_body_div_id):
-            f.write('<div id="release-body-%d" style="display:%s">' % (
+            f.write('<div id="release-body-%d" class="release-body" style="display:%s">' % (
                     release_body_div_id, 'none' if not is_first_release else 'block'))
-            self.write_qa_notes(f, release)
+            release_notes_id, qa_notes_id = self.write_release_section_toggles(f)
+            self.write_release_notes(f, release, release_notes_id)
+            self.write_qa_notes(f, release, qa_notes_id)
             f.write('</div>')
 
-        def write_qa_notes(self, f, release):
+        def write_release_section_toggles(self, f):
+            release_notes_id = self._get_elem_uid()
+            qa_notes_id = self._get_elem_uid()
+            f.write('<div class="release-subhead">')
+            f.write('<span class="show-release-notes" id="show-release-notes-%d" style="display:inline-block">' \
+                    '''<a href="javascript:showReleaseNotes('%d')">Release Notes</a></span>''' % (
+                        release_notes_id, release_notes_id))
+            f.write('<span class="hide-release-notes" id="hide-release-notes-%d" style="display:none">' \
+                    '''<a href="javascript:hideReleaseNotes('%d')">Release Notes</a></span>''' % (
+                        release_notes_id, release_notes_id))
+            f.write('<span class="show-qa-notes" id="show-qa-notes-%d" style="display:none">' \
+                    '''<a href="javascript:showQaNotes('%d')">QA Notes</a></span>''' % (
+                        qa_notes_id, qa_notes_id))
+            f.write('<span class="hide-qa-notes" id="hide-qa-notes-%d" style="display:inline-block">' \
+                    '''<a href="javascript:hideQaNotes('%d')">QA Notes</a></span>''' % (
+                        qa_notes_id, qa_notes_id))
+            f.write('</div>') # end of "release-subhead" div
+            return release_notes_id, qa_notes_id
+
+        def write_release_notes(self, f, release, release_notes_id):
+            def write_notes(key, default):
+                def write_lst(lst, default=None):
+                    if not lst:
+                        if default:
+                            f.write(default)
+                        return
+                    f.write('<ul>')
+                    for n in lst:
+                        f.write('<li>')
+                        f.write(self.bld.seano_markup_line_to_html(n['head']))
+                        write_lst(n['children'])
+                        f.write('</li>')
+                    f.write('</ul>')
+                write_lst(bld.seano_cascade_release_note_trees(release.get('notes', None) or [], key), default)
+            f.write('<div id="release-notes-%d" style="display:none">' % (release_notes_id,))
+            f.write('<div class="public-release-notes">')
+            f.write('<h4>Public Release Notes</h4>')
+            write_notes('public-short', '<p><em>No public release notes</em></p>')
+            f.write('</div>')
+            f.write('<div class="internal-release-notes">')
+            f.write('<h4>Internal Release Notes</h4>')
+            write_notes('internal-short', '<p><em>No internal release notes</em></p>')
+            f.write('</div>')
+            f.write('</div>')
+
+        def write_qa_notes(self, f, release, qa_notes_id):
+            f.write('<div id="qa-notes-%d">' % (qa_notes_id,))
             if not release['notes']:
-                f.write('<p><em>No changes</em></p>')
+                f.write('<p class="testing"><em>No changes</em></p>')
             else:
                 f.write('<ul>')
                 for note in release['notes']:
@@ -250,6 +338,7 @@ function hideTechnical(id) {
                             or '_QA Notes missing_'))
                     f.write('</div></li>')
                 f.write('</ul>')
+            f.write('</div>')
 
 
     t = qa_notes_render_task(env=bld.env)

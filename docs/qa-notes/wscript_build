@@ -19,6 +19,17 @@ if True:
             return '<a href="' + url + '" target="_blank">' + m.group(1) + '</a>'
         bld.fatal("Don't know how to display URL in QA Notes: %s" % (url,))
 
+    def get_host_os_version():
+        info = subprocess.check_output(['system_profiler', 'SPSoftwareDataType']).splitlines()
+        info = [x.strip() for x in info]
+        info = [x.partition(':') for x in info]
+        info = {x[0].strip() : x[2].strip() for x in info}
+        return info['System Version']
+
+    def get_host_xcode_version():
+        lines = subprocess.check_output(['xcodebuild', '-version']).splitlines()
+        return lines[0] + ' (' + lines[1].rpartition('Build version ')[2] + ')'
+
     class qa_notes_render_task(Task.Task):
         vars = ['CURRENT_SOURCE_VERSION']
 
@@ -71,6 +82,23 @@ code {
 pre > code {
     padding: 0;
     border: none;
+}
+
+.build-uniq-div {
+    background: #D3ECD6; /* Pistachio */
+    padding: 0.5em;
+    margin-bottom: 1em;
+}
+.build-uniq-div > .head {
+    display: block;
+    margin: 0 0 0.5em 0;
+}
+.build-uniq-div > .build-uniq-data {
+    background: white;
+}
+.build-uniq-div > .build-uniq-data > .data {
+    display: inline-block;
+    margin: 0.5em 1em 0.5em 1em;
 }
 
 .release-head {
@@ -158,6 +186,12 @@ li > ul, li > ol {
     pre > code {
         border: none;
     }
+    .build-uniq-div, .build-uniq-div > .head {
+        background: #38823E; /* Goblin */
+    }
+    .build-uniq-div > .build-uniq-data {
+        background: black;
+    }
     .release-head,
     .release-head > .release-name,
     .release-head > .release-since,
@@ -222,11 +256,16 @@ function hideTechnical(id) {
 }
 </script></head><body><h2>QA Notes for CE Mac Client v''')
                 f.write(escape(releases[0]['name']))
-                f.write('</h2><p>Commit <code>')
-                f.write(self.bld.env.CURRENT_SOURCE_VERSION)
-                f.write('</code>; built on ')
+                f.write('</h2><p>Built on ')
                 f.write(datetime.datetime.today().strftime('%m/%d/%Y at %I:%M %p %Z'))
-                f.write('</p>')
+                f.write('</p><div class="build-uniq-div"><span class="head">Build Uniqueness</span>')
+                f.write('<div class="build-uniq-data"><span class="data">Commit <code>')
+                f.write(self.bld.env.CURRENT_SOURCE_VERSION)
+                f.write('</code></span><span class="data">')
+                f.write(get_host_os_version())
+                f.write('</span><span class="data">')
+                f.write(get_host_xcode_version())
+                f.write('</span></div></div>')
                 release_count = 0
                 for release in releases:
                     release_count = release_count + 1

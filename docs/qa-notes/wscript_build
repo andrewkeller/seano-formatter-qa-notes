@@ -30,6 +30,9 @@ if True:
         lines = subprocess.check_output(['xcodebuild', '-version']).splitlines()
         return lines[0] + ' (' + lines[1].rpartition('Build version ')[2] + ')'
 
+    def get_source_tree_version():
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}']).strip()
+
     class qa_notes_render_task(Task.Task):
         vars = ['CURRENT_SOURCE_VERSION']
 
@@ -82,6 +85,9 @@ code {
 pre > code {
     padding: 0;
     border: none;
+}
+.unimportant-long-sha1 {
+    word-break: break-all;
 }
 
 .build-uniq-div {
@@ -256,11 +262,13 @@ function hideTechnical(id) {
 }
 </script></head><body><h2>QA Notes for CE Mac Client v''')
                 f.write(escape(releases[0]['name']))
-                f.write('</h2><p>Built on ')
+                f.write('</h2><p>Commit <code class="unimportant-long-sha1">')
+                f.write(self.bld.env.CURRENT_SOURCE_VERSION)
+                f.write('</code>, built on ')
                 f.write(datetime.datetime.today().strftime('%m/%d/%Y at %I:%M %p %Z'))
                 f.write('</p><div class="build-uniq-div"><span class="head">Build Uniqueness</span>')
-                f.write('<div class="build-uniq-data"><span class="data">Commit <code>')
-                f.write(self.bld.env.CURRENT_SOURCE_VERSION)
+                f.write('<div class="build-uniq-data"><span class="data">Tree <code class="unimportant-long-sha1">')
+                f.write(get_source_tree_version())
                 f.write('</code></span><span class="data">')
                 f.write(get_host_os_version())
                 f.write('</span><span class="data">')

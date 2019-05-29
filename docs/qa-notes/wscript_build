@@ -165,9 +165,6 @@ p {
 ol, ul {
     margin-bottom: 1em;
 }
-li > ul, li > ol {
-    margin-bottom: 0;
-}
 @media (prefers-color-scheme: dark) {
     * {
         background-color: black;

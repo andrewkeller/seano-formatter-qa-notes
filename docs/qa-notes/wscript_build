@@ -6,6 +6,7 @@ if True:
         from html import escape  # python 3.x
     except ImportError:
         from cgi import escape  # python 2.x
+    import json
     import re
 
     jira_url_regex = re.compile(r'^https?://[^/]*jira[^/]*/browse/([A-Z]+\-[0-9]+)$')
@@ -48,7 +49,7 @@ if True:
 
         def run(self):
             self._next_elem_uid = 0
-            releases = self.inputs[0].read_json()
+            releases = json.loads(self.inputs[0].read())
             with open(self.outputs[0].abspath(), 'w') as f:
                 f.write('''<html><head>''')
                 f.write('''<meta charset="utf-8">''')

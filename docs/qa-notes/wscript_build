@@ -1,5 +1,6 @@
-bld.recurse('../seano-export')
-if True:
+def f():
+    bld.recurse('../seano-export')
+
     from waflib import Task
     import datetime
     try:
@@ -8,6 +9,7 @@ if True:
         from cgi import escape  # python 2.x
     import json
     import re
+    import subprocess
 
     jira_url_regex = re.compile(r'^https?://[^/]*jira[^/]*/browse/([A-Z]+\-[0-9]+)$')
     redmine_url_regex = re.compile(r'^https?://[^/]*redmine[^/]*/issues/([0-9]+)$')
@@ -405,3 +407,5 @@ function hideTechnical(id) {
     t.set_inputs(bld.env.SEANO_EXPORT_JSON_NODE)
     t.set_outputs(bld.path.find_or_declare('qa-notes.html'))
     bld.add_to_group(t)
+
+f()

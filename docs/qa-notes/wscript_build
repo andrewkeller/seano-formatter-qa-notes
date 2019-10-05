@@ -1,6 +1,4 @@
 def f():
-    bld.recurse('../seano-export')
-
     from waflib import Task
     import datetime
     try:
@@ -51,7 +49,7 @@ def f():
 
         def run(self):
             self._next_elem_uid = 0
-            releases = json.loads(self.inputs[0].read())
+            releases = json.loads(self.inputs[0].read())['releases']
             with open(self.outputs[0].abspath(), 'w') as f:
                 f.write('''<html><head>''')
                 f.write('''<meta charset="utf-8">''')
@@ -404,7 +402,7 @@ function hideTechnical(id) {
 
 
     t = qa_notes_render_task(env=bld.env)
-    t.set_inputs(bld.env.SEANO_EXPORT_JSON_NODE)
+    t.set_inputs(bld.get_compiled_seano_db_node())
     t.set_outputs(bld.path.find_or_declare('qa-notes.html'))
     bld.add_to_group(t)
 

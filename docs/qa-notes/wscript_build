@@ -12,6 +12,8 @@ def f():
     jira_url_regex = re.compile(r'^https?://[^/]*jira[^/]*/browse/([A-Z]+\-[0-9]+)$')
     redmine_url_regex = re.compile(r'^https?://[^/]*redmine[^/]*/issues/([0-9]+)$')
     def compile_ticket_url(url):
+        if url is None:
+            return '<span style="color: red">BAD DEVELOPER NO SECRET WORK</span>'
         m = jira_url_regex.match(url)
         if m:
             return '<a href="' + url + '" target="_blank">' + m.group(1) + '</a>'
@@ -375,7 +377,7 @@ function hideTechnical(id) {
                         head = head.keys()[0]
                     f.write(self.bld.seano_markup_line_to_html(head or 'Internal release note missing'))
                     f.write('</span>') # internal-short
-                    for t in note.get('tickets', []):
+                    for t in note.get('tickets', None) or [None]: # None is used to indicate secret work
                         f.write('<span class="ticket">')
                         f.write(compile_ticket_url(t))
                         f.write('</span>')

@@ -152,11 +152,22 @@ pre > code {
     padding: 0.2em 0.7em 0.2em 0.7em;
     background: #BDE6FE; /* French Pass */
 }
+.release-notes-body {
+    margin: 1em;
+    padding: 1em;
+    background: rgb(236,236,236); /* Off-white of background of System Preferences in light mode */
+}
 .rnhover {
     background: #BDE6FE; /* French Pass */
 }
 .public-release-notes, .internal-release-notes, .testing, .technical {
     margin-left: 1em;
+}
+.custsrv-release-notes {
+    margin-left: 2em;
+}
+.custsrv-release-notes > :first-child {
+    margin-left: -1em;
 }
 p {
     margin-top: 0;
@@ -208,6 +219,9 @@ ol, ul {
     .release-subhead > .hide-release-notes > a, .release-subhead > .hide-qa-notes > a {
         color: black;
         background: #8DD2FC; /* Cornflower */
+    }
+    .release-notes-body {
+        background-color: rgb(63,65,68); /* Cocoa window title bar color in dark mode */
     }
     .rnhover {
         background: #0175bb; /* Bahama */
@@ -329,7 +343,19 @@ function hideTechnical(id) {
         return release_notes_id, qa_notes_id
 
     def write_release_notes(self, f, release, release_notes_id): #pylint: disable=R0201
-        def write_notes(key, default):
+        def write_mouse_hover_toggle_logic(identifiers):
+            # Here, we expect that we are within the attribute list of the start of an HTML element of some kind.
+            # Add class, onmouseover, and onmouseleave:
+            f.write_body(' class="')
+            f.write_body(' '.join(identifiers))
+            f.write_body('" onmouseover="')
+            f.write_body(';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', true)})''' % (s,) for s in identifiers])) #pylint: disable=C0301
+            f.write_body('" onmouseleave="')
+            f.write_body(';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', false)})''' % (s,) for s in identifiers])) #pylint: disable=C0301
+            f.write_body('"')
+            # Here, we have finished writing all of our attributes.
+            # The caller is expected to close this element (i.e., write the '>')
+        def write_hlist(key, default):
             def write_lst(lst, default=None):
                 if not lst:
                     if default:
@@ -338,27 +364,70 @@ function hideTechnical(id) {
                 f.write_body('<ul>')
                 for n in lst:
                     styles = ['r%dp%d' % (release_notes_id, t) for t in n['tags']]
-                    f.write_body('<li><span class="')
-                    f.write_body(' '.join(styles))
-                    f.write_body('" onmouseover="')
-                    f.write_body(';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', true)})''' % (s,) for s in styles])) #pylint: disable=C0301
-                    f.write_body('" onmouseleave="')
-                    f.write_body(';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', false)})''' % (s,) for s in styles])) #pylint: disable=C0301
-                    f.write_body('">')
+                    f.write_body('<li><span')
+                    write_mouse_hover_toggle_logic(styles)
+                    f.write_body('>')
                     f.write_body(rst_line_to_html(n['head']).html)
                     f.write_body('</span>')
                     write_lst(n['children'])
                     f.write_body('</li>')
                 f.write_body('</ul>')
-            write_lst(seano_cascade_hlist(release.get('notes', None) or [], key), default)
-        f.write_body('<div id="release-notes-%d" style="display:none">' % (release_notes_id,))
+            write_lst(seano_cascade_hlist(release.get('notes', None) or [], key=key), default)
+        def write_plist(keys, default):
+            did_write_notes = False
+            # ABK: The tag here is mirroring the behavior of seano_cascade_hlist()
+            tag = 0
+            for n in release.get('notes', None) or []:
+                tag = tag + 1 # Assume notes are traversed in the same order as in seano_cascade_hlist() (they are)
+                style = 'r%dp%d' % (release_notes_id, tag)
+                for k in keys:
+                    # ABK: By deliberately checking for this key first, we allow it to exist but be empty,
+                    #      enabling the writer of the documentation to effectively remove all mention of
+                    #      this note from this documentation view.
+                    if k in n:
+                        txt = (n[k] or {}).get('en-US', None) or ''
+                        if txt:
+                            f.write_body('<div')
+                            write_mouse_hover_toggle_logic([style])
+                            f.write_body('>')
+                            if isinstance(txt, list):
+                                def write_lst(lst):
+                                    f.write_body('<ul>')
+                                    for node in lst:
+                                        f.write_body('<li>')
+                                        f.write_body(rst_line_to_html(node['head']).html)
+                                        c = node['children']
+                                        if c:
+                                            write_lst(c)
+                                        f.write_body('</li>')
+                                    f.write_body('</ul>')
+                                for node in seano_cascade_hlist([n], k):
+                                    f.write_body('<p>')
+                                    f.write_body(rst_line_to_html(node['head']).html)
+                                    c = node['children']
+                                    if c:
+                                        write_lst(c)
+                                    f.write_body('</p>\n')
+                            else: # Assume string
+                                f.write_body(rst_to_html(txt).html)
+                            f.write_body('</div>')
+                            did_write_notes = True
+                        break
+            if not did_write_notes:
+                f.write_body(default)
+        f.write_body('<div id="release-notes-%d" class="release-notes-body" style="display:none">' %(release_notes_id,))
         f.write_body('<div class="public-release-notes">')
         f.write_body('<h4>Public Release Notes</h4>')
-        write_notes('customer-short-loc-hlist-rst', '<p><em>No public release notes</em></p>')
+        write_hlist(key='customer-short-loc-hlist-rst', default='<p><em>No public release notes</em></p>')
         f.write_body('</div>')
         f.write_body('<div class="internal-release-notes">')
         f.write_body('<h4>Internal Release Notes</h4>')
-        write_notes('employee-short-loc-hlist-rst', '<p><em>No internal release notes</em></p>')
+        write_hlist(key='employee-short-loc-hlist-rst', default='<p><em>No internal release notes</em></p>')
+        f.write_body('</div>')
+        f.write_body('<div class="custsrv-release-notes">')
+        f.write_body('<h4>Customer Service Notes</h4>')
+        write_plist(keys=['cs-technical-loc-rst', 'employee-short-loc-hlist-rst'],
+                    default='<p><em>No Customer Service notes</em></p>')
         f.write_body('</div>')
         f.write_body('</div>')
 

@@ -279,13 +279,15 @@ function hideTechnical(id) {
             f.write_body('</code>, built on ')
             # IMPROVE: ABK: This line makes the output non-deterministic.  Is that bad?
             f.write_body(datetime.datetime.today().strftime('%m/%d/%Y at %I:%M %p %Z'))
-            f.write_body('</p><div class="build-uniq-div"><span class="head">Build Uniqueness</span>')
-            f.write_body('<div class="build-uniq-data">')
-            for data in sorted(srcjson['build-uniqueness-list-rst'], key=lambda s: s.lower()):
-                f.write_body('<span class="data">')
-                f.write_body(rst_line_to_html(data).html)
-                f.write_body('</span>')
-            f.write_body('</div></div>')
+            f.write_body('</p>')
+            if srcjson.get('build-uniqueness-list-rst'):
+                f.write_body('<div class="build-uniq-div"><span class="head">Build Uniqueness</span>')
+                f.write_body('<div class="build-uniq-data">')
+                for data in sorted(srcjson['build-uniqueness-list-rst'], key=lambda s: s.lower()):
+                    f.write_body('<span class="data">')
+                    f.write_body(rst_line_to_html(data).html)
+                    f.write_body('</span>')
+                f.write_body('</div></div>')
             release_count = 0
             for release in releases:
                 release_count = release_count + 1

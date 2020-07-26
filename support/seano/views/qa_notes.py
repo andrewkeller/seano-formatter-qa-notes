@@ -3,14 +3,13 @@ support/seano/views/qa_notes.py
 
 Infrastructure to convert a seano query output file into what is known as the QA Notes page (single-file HTML+CSS+JS)
 
-The public entry point here is the function named compile_qa_notes().  The __init__ file for this module knows to
-export just that function from this file when the entire views module is imported.
+The public entry point here is the function named ``compile_qa_notes()``.
 """
 import datetime
 import json
-import re
 from .shared.hlist import seano_cascade_hlist
 from .shared.html_buf import SeanoHtmlBuffer, html_escape as escape
+from .shared.links import get_ticket_display_name
 from .shared.markup import rst_to_html, rst_line_to_html
 
 
@@ -22,20 +21,12 @@ class QANotesRenderInfrastructure(object):
     local storage is easier to unit test.  (Not that we have unit tests, but I can dream, right?)
     '''
     def __init__(self):
-        self.jira_url_regex = re.compile(r'^https?://[^/]*jira[^/]*/browse/([A-Z]+\-[0-9]+)$')
-        self.redmine_url_regex = re.compile(r'^https?://[^/]*redmine[^/]*/issues/([0-9]+)$')
         self._next_elem_uid = 0
 
-    def compile_ticket_url(self, url):
+    def compile_ticket_url(self, url):  #pylint: disable=R0201
         if url is None:
             return '<span style="color: red">BAD DEVELOPER NO SECRET WORK</span>'
-        m = self.jira_url_regex.match(url)
-        if m:
-            return '<a href="' + url + '" target="_blank">' + m.group(1) + '</a>'
-        m = self.redmine_url_regex.match(url)
-        if m:
-            return '<a href="' + url + '" target="_blank">' + m.group(1) + '</a>'
-        raise Exception("Don't know how to display URL in QA Notes: %s" % (url,))
+        return '<a href="' + url + '" target="_blank">' + get_ticket_display_name(url) + '</a>'
 
     def _get_elem_uid(self):
         self._next_elem_uid = self._next_elem_uid + 1
@@ -378,7 +369,7 @@ function hideTechnical(id) {
         def write_plist(keys, default):
             did_write_notes = False
             # ABK: The tag here is mirroring the behavior of seano_cascade_hlist()
-            tag = 0
+            tag = -1
             for n in release.get('notes', None) or []:
                 tag = tag + 1 # Assume notes are traversed in the same order as in seano_cascade_hlist() (they are)
                 style = 'r%dp%d' % (release_notes_id, tag)

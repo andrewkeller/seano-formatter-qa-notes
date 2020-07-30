@@ -366,46 +366,24 @@ function hideTechnical(id) {
                     f.write_body('</li>')
                 f.write_body('</ul>')
             write_lst(seano_cascade_hlist(release.get('notes', None) or [], key=key), default)
-        def write_plist(keys, default):
+        def write_plist(key, default):
             did_write_notes = False
             # ABK: The tag here is mirroring the behavior of seano_cascade_hlist()
             tag = -1
             for n in release.get('notes', None) or []:
                 tag = tag + 1 # Assume notes are traversed in the same order as in seano_cascade_hlist() (they are)
                 style = 'r%dp%d' % (release_notes_id, tag)
-                for k in keys:
-                    # ABK: By deliberately checking for this key first, we allow it to exist but be empty,
-                    #      enabling the writer of the documentation to effectively remove all mention of
-                    #      this note from this documentation view.
-                    if k in n:
-                        txt = (n[k] or {}).get('en-US', None) or ''
-                        if txt:
-                            f.write_body('<div')
-                            write_mouse_hover_toggle_logic([style])
-                            f.write_body('>')
-                            if isinstance(txt, list):
-                                def write_lst(lst):
-                                    f.write_body('<ul>')
-                                    for node in lst:
-                                        f.write_body('<li>')
-                                        f.write_body(rst_line_to_html(node['head']).html)
-                                        c = node['children']
-                                        if c:
-                                            write_lst(c)
-                                        f.write_body('</li>')
-                                    f.write_body('</ul>')
-                                for node in seano_cascade_hlist([n], k):
-                                    f.write_body('<p>')
-                                    f.write_body(rst_line_to_html(node['head']).html)
-                                    c = node['children']
-                                    if c:
-                                        write_lst(c)
-                                    f.write_body('</p>\n')
-                            else: # Assume string
-                                f.write_body(rst_to_html(txt).html)
-                            f.write_body('</div>')
-                            did_write_notes = True
-                        break
+                if key not in n:
+                    continue
+                txt = (n[key] or {}).get('en-US', None) or ''
+                if not txt:
+                    continue
+                f.write_body('<div')
+                write_mouse_hover_toggle_logic([style])
+                f.write_body('>')
+                f.write_body(rst_to_html(txt).html)
+                f.write_body('</div>')
+                did_write_notes = True
             if not did_write_notes:
                 f.write_body(default)
         f.write_body('<div id="release-notes-%d" class="release-notes-body" style="display:none">' %(release_notes_id,))
@@ -419,8 +397,7 @@ function hideTechnical(id) {
         f.write_body('</div>')
         f.write_body('<div class="custsrv-release-notes">')
         f.write_body('<h4>Customer Service Notes</h4>')
-        write_plist(keys=['cs-technical-loc-rst', 'employee-short-loc-hlist-rst'],
-                    default='<p><em>No Customer Service notes</em></p>')
+        write_plist(key='cs-technical-loc-rst', default='<p><em>No Customer Service notes</em></p>')
         f.write_body('</div>')
         f.write_body('</div>')
 

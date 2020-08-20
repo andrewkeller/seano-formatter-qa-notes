@@ -25,7 +25,7 @@ class QANotesRenderInfrastructure(object):
 
     def compile_ticket_url(self, url):  #pylint: disable=R0201
         if url is None:
-            return '<span style="color: red">BAD DEVELOPER NO SECRET WORK</span>'
+            return '<em>No ticket associated</em>'
         return '<a href="' + url + '" target="_blank">' + get_ticket_display_name(url) + '</a>'
 
     def _get_elem_uid(self):

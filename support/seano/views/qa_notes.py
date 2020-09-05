@@ -297,7 +297,7 @@ function hideTechnical(id) {
         f.write_body('<div class="release-head"><span class="release-name">Changes in ')
         f.write_body(escape(release['name']))
         f.write_body('</span><span class="release-since">(since ')
-        f.write_body(escape(' and '.join(release['after']) or 'the dawn of time'))
+        f.write_body(escape(' and '.join([x['name'] for x in release['after']]) or 'the dawn of time'))
         f.write_body(')</span>')
         f.write_body('<span class="show-release" id="show-release-%d" style="display:%s">' \
                      '''<a href="javascript:showRelease('%d')">Show</a></span>''' % (

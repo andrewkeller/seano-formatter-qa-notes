@@ -166,6 +166,12 @@ p {
 ol, ul {
     margin-bottom: 1em;
 }
+.clarification {
+    font-weight: normal;
+    font-size: 80%;
+    font-style: italic;
+    color: grey;
+}
 @media (prefers-color-scheme: dark) {
     body {
         background-color: #292A2F; /* Xcode's off-black background color */
@@ -348,7 +354,7 @@ function hideTechnical(id) {
             f.write_body('"')
             # Here, we have finished writing all of our attributes.
             # The caller is expected to close this element (i.e., write the '>')
-        def write_hlist(key, default):
+        def write_hlist(key, default, include_backstories=False):
             def write_lst(lst, default=None):
                 if not lst:
                     if default:
@@ -365,13 +371,19 @@ function hideTechnical(id) {
                     write_lst(n['children'])
                     f.write_body('</li>')
                 f.write_body('</ul>')
-            write_lst(seano_cascade_hlist(release.get('notes', None) or [], key=key), default)
+            notes = release.get('notes') or []
+            if not include_backstories:
+                # Erase notes from backstories, but keep their positions in the array:
+                notes = [{} if x.get('is-copied-from-backstory') else x for x in notes]
+            write_lst(seano_cascade_hlist(notes, key=key), default)
         def write_plist(key, default):
             did_write_notes = False
             # ABK: The tag here is mirroring the behavior of seano_cascade_hlist()
             tag = -1
             for n in release.get('notes', None) or []:
                 tag = tag + 1 # Assume notes are traversed in the same order as in seano_cascade_hlist() (they are)
+                if n.get('is-copied-from-backstory'):
+                    continue
                 style = 'r%dp%d' % (release_notes_id, tag)
                 if key not in n:
                     continue
@@ -388,8 +400,12 @@ function hideTechnical(id) {
                 f.write_body(default)
         f.write_body('<div id="release-notes-%d" class="release-notes-body" style="display:none">' %(release_notes_id,))
         f.write_body('<div class="public-release-notes">')
-        f.write_body('<h4>Public Release Notes</h4>')
-        write_hlist(key='customer-short-loc-hlist-rst', default='<p><em>No public release notes</em></p>')
+        backstory_clarification = ''
+        if any([x.get('is-copied-from-backstory') for x in release.get('notes') or []]):
+            backstory_clarification = ' <span class="clarification">(includes backstories)</span>'
+        f.write_body('<h4>Public Release Notes' + backstory_clarification + '</h4>')
+        write_hlist(key='customer-short-loc-hlist-rst', default='<p><em>No public release notes</em></p>',
+                    include_backstories=True)
         f.write_body('</div>')
         f.write_body('<div class="internal-release-notes">')
         f.write_body('<h4>Internal Release Notes</h4>')
@@ -403,11 +419,15 @@ function hideTechnical(id) {
 
     def write_qa_notes(self, f, release, qa_notes_id):
         f.write_body('<div id="qa-notes-%d">' % (qa_notes_id,))
+        notes_new_in_this_release = [x for x in release['notes'] if not x.get('is-copied-from-backstory')]
         if not release['notes']:
             f.write_body('<p class="testing"><em>No changes</em></p>')
+        elif not notes_new_in_this_release:
+            f.write_body('<p class="testing"><em>No changes, however some release notes were repeated '
+                         'from earlier work</em></p>')
         else:
             f.write_body('<ul>')
-            for note in release['notes']:
+            for note in notes_new_in_this_release:
                 f.write_body('<li><span class="note-head"><span class="internal-short">')
                 head = note.get('employee-short-loc-hlist-rst', {}).get('en-US', [None])[0]
                 if head and isinstance(head, dict):

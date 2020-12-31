@@ -24,7 +24,7 @@ initial changes that were made.
 When you forget changes, a number of things happen:
 
 * QA forgets to test things, which can lead to bugs getting released
-* Product Managers forget to inform Customer Service of changes
+* Product Managers forget to inform Member Care of changes
 * When bugs are released for changes that nobody remembered, a project can look disorganized or unreliable
 
 QA Notes Workflow
@@ -85,9 +85,9 @@ All of these keys are included in the default ``seano`` note template, so you do
         This field is a single large reStructuredText blob.  Go wild.  Explaining
         details is good.
 
-    cs-technical-loc-rst:
+    mc-technical-loc-rst:
       en-US: |
-        You are talking to a Tier-2 Customer Service Representative.
+        You are talking to a Tier-2 Member Care Representative.
 
         What changed?
 
@@ -102,10 +102,10 @@ All of these keys are included in the default ``seano`` note template, so you do
         good, but tend toward environmental and human information over API
         architecture explanations.
 
-        If this change is not worth mentioning to Customer Service at all, then
+        If this change is not worth mentioning to Member Care at all, then
         delete this section.
 
-    employee-testing-loc-rst:
+    qa-technical-loc-rst:
       en-US: |
         Explain what needs to be tested (new things to test) and/or re-tested
         (impact requiring regression testing).  Target audience is QA.

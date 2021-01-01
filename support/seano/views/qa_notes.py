@@ -11,6 +11,7 @@ from .shared.hlist import seano_cascade_hlist
 from .shared.html_buf import SeanoHtmlBuffer, html_escape as escape
 from .shared.links import get_ticket_display_name
 from .shared.markup import rst_to_html, rst_line_to_html
+from .shared.schema_plumbing import seano_minimum_release_list
 
 
 class QANotesRenderInfrastructure(object):
@@ -22,6 +23,7 @@ class QANotesRenderInfrastructure(object):
     '''
     def __init__(self):
         self._next_elem_uid = 0
+        self._minimum_release_list_cache = {} # IMPROVE: This is a code smell...  need a better way to do caching.
 
     def compile_ticket_url(self, url):  #pylint: disable=R0201
         if url is None:
@@ -290,20 +292,22 @@ function hideTechnical(id) {
                 release_count = release_count + 1
                 if release_count > 5:
                     break
-                self.write_release(f, release, release_count <= 1)
+                self.write_release(f, release, releases, release_count <= 1)
 
             return f.all_data()
 
-    def write_release(self, f, release, is_first_release):
-        release_div_id = self.write_release_head(f, release, is_first_release)
+    def write_release(self, f, release, releases, is_first_release):
+        release_div_id = self.write_release_head(f, release, releases, is_first_release)
         self.write_release_body(f, release, is_first_release, release_div_id)
 
-    def write_release_head(self, f, release, is_first_release):
+    def write_release_head(self, f, release, releases, is_first_release):
         release_div_id = self._get_elem_uid()
         f.write_body('<div class="release-head"><span class="release-name">Changes in ')
         f.write_body(escape(release['name']))
         f.write_body('</span><span class="release-since">(since ')
-        f.write_body(escape(' and '.join([x['name'] for x in release['after']]) or 'the dawn of time'))
+        bag = [x['name'] for x in release['after']]
+        bag = seano_minimum_release_list(bag, releases, self._minimum_release_list_cache)
+        f.write_body(escape(' and '.join(bag) or 'the dawn of time'))
         f.write_body(')</span>')
         f.write_body('<span class="show-release" id="show-release-%d" style="display:%s">' \
                      '''<a href="javascript:showRelease('%d')">Show</a></span>''' % (

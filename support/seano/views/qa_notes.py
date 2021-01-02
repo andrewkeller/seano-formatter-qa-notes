@@ -7,9 +7,9 @@ The public entry point here is the function named ``compile_qa_notes()``.
 """
 import datetime
 import json
+from .shared.components import *
 from .shared.hlist import seano_cascade_hlist
 from .shared.html_buf import SeanoHtmlBuffer, html_escape as escape
-from .shared.links import get_ticket_display_name
 from .shared.markup import rst_to_html, rst_line_to_html
 from .shared.schema_plumbing import seano_minimum_release_list
 
@@ -27,8 +27,10 @@ class QANotesRenderInfrastructure(object):
 
     def compile_ticket_url(self, url):  #pylint: disable=R0201
         if url is None:
-            return '<em>No ticket associated</em>'
-        return '<a href="' + url + '" target="_blank">' + get_ticket_display_name(url) + '</a>'
+            # Visually matches font size of tickets in support/seano/views/shared/components.py, despite
+            # this font size being...  larger?  It's probably an illusion caused by use of italics.
+            return '<span style="font-size:90%"><em>No ticket associated</em></span>'
+        return seano_render_html_ticket(url)
 
     def _get_elem_uid(self):
         self._next_elem_uid = self._next_elem_uid + 1
@@ -144,6 +146,9 @@ pre > code {
     margin-bottom: 0.1em;
     padding: 0.2em 0.7em 0.2em 0.7em;
     background: #BDE6FE; /* French Pass */
+}
+.note-head > .show-technical, .note-head > .hide-technical {
+    font-size: 75%; /* Matches font size of tickets in support/seano/views/shared/components.py */
 }
 .release-notes-body {
     margin: 1em;
@@ -346,40 +351,31 @@ function hideTechnical(id) {
         return release_notes_id, qa_notes_id
 
     def write_release_notes(self, f, release, release_notes_id): #pylint: disable=R0201
-        def write_mouse_hover_toggle_logic(identifiers):
+        def render_mouse_hover_toggle_logic(identifiers):
             # Here, we expect that we are within the attribute list of the start of an HTML element of some kind.
-            # Add class, onmouseover, and onmouseleave:
-            f.write_body(' class="')
-            f.write_body(' '.join(identifiers))
-            f.write_body('" onmouseover="')
-            f.write_body(';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', true)})''' % (s,) for s in identifiers])) #pylint: disable=C0301
-            f.write_body('" onmouseleave="')
-            f.write_body(';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', false)})''' % (s,) for s in identifiers])) #pylint: disable=C0301
-            f.write_body('"')
-            # Here, we have finished writing all of our attributes.
+            # Here, we add the class, onmouseover, and onmouseleave elements.
             # The caller is expected to close this element (i.e., write the '>')
-        def write_hlist(key, default, include_backstories=False):
-            def write_lst(lst, default=None):
-                if not lst:
-                    if default:
-                        f.write_body(default)
-                    return
-                f.write_body('<ul>')
-                for n in lst:
-                    styles = ['r%dp%d' % (release_notes_id, t) for t in n['tags']]
-                    f.write_body('<li><span')
-                    write_mouse_hover_toggle_logic(styles)
-                    f.write_body('>')
-                    f.write_body(rst_line_to_html(n['head']).html)
-                    f.write_body('</span>')
-                    write_lst(n['children'])
-                    f.write_body('</li>')
-                f.write_body('</ul>')
+            return ''.join([
+                ' class="',
+                ' '.join(identifiers),
+                '" onmouseover="',
+                ';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', true)})''' % (s,) for s in identifiers]), #pylint: disable=C0301
+                '" onmouseleave="',
+                ';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', false)})''' % (s,) for s in identifiers]), #pylint: disable=C0301
+                '"',
+            ])
+        def write_hlist(key, default, include_backstories=False, include_tickets=False):
             notes = release.get('notes') or []
             if not include_backstories:
                 # Erase notes from backstories, but keep their positions in the array:
                 notes = [{} if x.get('is-copied-from-backstory') else x for x in notes]
-            write_lst(seano_cascade_hlist(notes, key=key), default)
+            def line_formatter(node, notes):
+                base_func = seano_html_note_list_line_formatter_text_with_tickets if include_tickets \
+                    else seano_html_note_list_line_formatter_simple
+                result = base_func(node, notes)
+                styles = ['r%dp%d' % (release_notes_id, t) for t in node['tags']]
+                return '<span' + render_mouse_hover_toggle_logic(styles) + '>' + result + '</span>'
+            f.write_body(seano_render_html_note_list(notes, key, line_formatter=line_formatter) or default)
         def write_plist(key, default):
             did_write_notes = False
             # ABK: The tag here is mirroring the behavior of seano_cascade_hlist()
@@ -395,7 +391,7 @@ function hideTechnical(id) {
                 if not txt:
                     continue
                 f.write_body('<div')
-                write_mouse_hover_toggle_logic([style])
+                f.write_body(render_mouse_hover_toggle_logic([style]))
                 f.write_body('>')
                 f.write_body(rst_to_html(txt).html)
                 f.write_body('</div>')
@@ -413,7 +409,8 @@ function hideTechnical(id) {
         f.write_body('</div>')
         f.write_body('<div class="internal-release-notes">')
         f.write_body('<h4>Internal Release Notes</h4>')
-        write_hlist(key='employee-short-loc-hlist-rst', default='<p><em>No internal release notes</em></p>')
+        write_hlist(key='employee-short-loc-hlist-rst', default='<p><em>No internal release notes</em></p>',
+                    include_tickets=True)
         f.write_body('</div>')
         f.write_body('<div class="custsrv-release-notes">')
         f.write_body('<h4>Member Care Notes</h4>')

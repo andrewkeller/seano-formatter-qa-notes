@@ -37,12 +37,12 @@ class QANotesRenderInfrastructure(object):
 
     def run(self, srcdata):
         self._next_elem_uid = 0
-        cdm = SeanoMetaCache(srcdata)
+        cmc = SeanoMetaCache(srcdata)
         with SeanoHtmlBuffer() as f:
             f.write_head('''<title>QA Notes for ''')
-            f.write_head(escape(cdm.everything['project_name']['en-US']))
+            f.write_head(escape(cmc.everything['project_name']['en-US']))
             f.write_head(''' v''')
-            f.write_head(escape(cdm.releases[0]['name']))
+            f.write_head(escape(cmc.releases[0]['name']))
             f.write_head('''</title>''')
             f.write_css(rst_to_html('sample text').css) # Write out Pygments' CSS sheet
             f.write_css('''
@@ -270,46 +270,46 @@ function hideTechnical(id) {
     document.getElementById('technical-' + id).style.display = 'none';
 }''')
             f.write_body('''<h2>QA Notes for ''')
-            f.write_body(escape(cdm.everything['project_name']['en-US']))
+            f.write_body(escape(cmc.everything['project_name']['en-US']))
             f.write_body(' v')
-            f.write_body(escape(cdm.releases[0]['name']))
+            f.write_body(escape(cmc.releases[0]['name']))
             f.write_body('</h2><p>Commit <code class="unimportant-long-sha1">')
             # IMPROVE: ABK: This lies when the working directory is dirty.  How best to fix?
-            f.write_body(escape(cdm.releases[0].get('commit', None)                         # Normal committed work
-                                or (len(cdm.releases) > 1 and cdm.releases[1].get('commit', None)) # Dirty checkout
+            f.write_body(escape(cmc.releases[0].get('commit', None)                         # Normal committed work
+                                or (len(cmc.releases) > 1 and cmc.releases[1].get('commit', None)) # Dirty checkout
                                 or '???'))                                                       # Unexpected error
             f.write_body('</code>, built on ')
             # IMPROVE: ABK: This line makes the output non-deterministic.  Is that bad?
             f.write_body(datetime.datetime.today().strftime('%m/%d/%Y at %I:%M %p %Z'))
             f.write_body('</p>')
-            if cdm.everything.get('build-uniqueness-list-rst'):
+            if cmc.everything.get('build-uniqueness-list-rst'):
                 f.write_body('<div class="build-uniq-div"><span class="head">Build Uniqueness</span>')
                 f.write_body('<div class="build-uniq-data">')
-                for data in sorted(cdm.everything['build-uniqueness-list-rst'], key=lambda s: s.lower()):
+                for data in sorted(cmc.everything['build-uniqueness-list-rst'], key=lambda s: s.lower()):
                     f.write_body('<span class="data">')
                     f.write_body(rst_line_to_html(data).html)
                     f.write_body('</span>')
                 f.write_body('</div></div>')
             release_count = 0
-            for release in cdm.releases:
+            for release in cmc.releases:
                 release_count = release_count + 1
                 if release_count > 5:
                     break
-                self.write_release(f, release, cdm, release_count <= 1)
+                self.write_release(f, release, cmc, release_count <= 1)
 
             return f.all_data()
 
-    def write_release(self, f, release, cdm, is_first_release):
-        release_div_id = self.write_release_head(f, release, cdm, is_first_release)
+    def write_release(self, f, release, cmc, is_first_release):
+        release_div_id = self.write_release_head(f, release, cmc, is_first_release)
         self.write_release_body(f, release, is_first_release, release_div_id)
 
-    def write_release_head(self, f, release, cdm, is_first_release):
+    def write_release_head(self, f, release, cmc, is_first_release):
         release_div_id = self._get_elem_uid()
         f.write_body('<div class="release-head"><span class="release-name">Changes in ')
         f.write_body(escape(release['name']))
         f.write_body('</span><span class="release-since">(since ')
         bag = [x['name'] for x in release['after']]
-        bag = seano_minimum_release_list(bag, cdm)
+        bag = seano_minimum_release_list(bag, cmc)
         f.write_body(escape(' and '.join(bag) or 'the dawn of time'))
         f.write_body(')</span>')
         f.write_body('<span class="show-release" id="show-release-%d" style="display:%s">' \

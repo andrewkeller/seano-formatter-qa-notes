@@ -11,7 +11,7 @@ from .shared.hlist import seano_cascade_hlist
 from .shared.html_buf import SeanoHtmlBuffer, html_escape as escape
 from .shared.markup import rst_to_html, rst_line_to_html
 from .shared.metacache import SeanoMetaCache
-from .shared.schema_plumbing import seano_minimum_release_list
+from .shared.schema_plumbing import seano_minimum_descendant_list
 
 
 class QANotesRenderInfrastructure(object):
@@ -309,7 +309,7 @@ function hideTechnical(id) {
         f.write_body(escape(release['name']))
         f.write_body('</span><span class="release-since">(since ')
         bag = [x['name'] for x in release['after']]
-        bag = seano_minimum_release_list(bag, cmc)
+        bag = seano_minimum_descendant_list(bag, cmc)
         f.write_body(escape(' and '.join(bag) or 'the dawn of time'))
         f.write_body(')</span>')
         f.write_body('<span class="show-release" id="show-release-%d" style="display:%s">' \

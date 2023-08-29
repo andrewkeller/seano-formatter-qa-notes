@@ -7,9 +7,9 @@ The public entry point here is the function named ``compile_qa_notes()``.
 """
 import datetime
 from .shared.components import *
-from .shared.hlist import seano_cascade_hlist
+from .shared.hlist import seano_read_hlist, SeanoUnlocalizedHListNode
 from .shared.html_buf import SeanoHtmlBuffer, html_escape as escape
-from .shared.markup import rst_to_html, rst_line_to_html
+from .shared.markup import SeanoMarkdown, SeanoReStructuredText
 from .shared.metacache import SeanoMetaCache
 from .shared.schema_plumbing import seano_minimum_descendant_list
 
@@ -44,7 +44,7 @@ class QANotesRenderInfrastructure(object):
             f.write_head(''' v''')
             f.write_head(escape(cmc.releases[0]['name']))
             f.write_head('''</title>''')
-            f.write_css(rst_to_html('sample text').css) # Write out Pygments' CSS sheet
+            f.write_css(SeanoReStructuredText('sample text').toHtmlBlock().css) # Write out Pygments' CSS sheet
             f.write_css('''
 body {
     font-family: sans-serif;
@@ -59,20 +59,21 @@ a:visited {
 blockquote {
     border-left: 0.2em solid #8DD2FC; /* Cornflower */
 }
-pre, pre.code, code {
+pre, pre.code, code, tt.literal {
     background-color: #F4FAFB; /* Lily White */
     border: 0.05em solid #BDE6FE; /* French Pass */
     border-radius: 0.2em;
 }
 pre {
+    font-size: 110%;
     overflow: scroll;
     padding: 0.6em;
     margin-left: 1.5em;
 }
-code {
+code, tt.literal {
     display: inline-block;
     font-family: Courier, monospace;
-    padding: 0.1em 0.2em 0.1em 0.2em;
+    padding: 0 0.1em 0 0.2em;
 }
 pre > code {
     padding: 0;
@@ -191,8 +192,8 @@ ol, ul {
     blockquote {
         border-left: 0.2em solid #0175bb; /* Bahama */
     }
-    pre, pre.code, code {
-        background-color: #101030; /* Custom dark blue */
+    pre, pre.code, code, tt.literal {
+        background-color: #454545; /* Custom dark gray */
         border: 0.1em solid #07466D; /* Regal Blue */
         border-radius: 0.3em;
     }
@@ -280,14 +281,16 @@ function hideTechnical(id) {
                                 or '???'))                                                       # Unexpected error
             f.write_body('</code>, built on ')
             # IMPROVE: ABK: This line makes the output non-deterministic.  Is that bad?
+            # IMPROVE: ABK: Yes, that is bad.  The date should be present in the query output.
             f.write_body(datetime.datetime.today().strftime('%m/%d/%Y at %I:%M %p %Z'))
             f.write_body('</p>')
-            if cmc.everything.get('build-uniqueness-list-rst'):
+            bu = seano_read_hlist([cmc.everything], ['build-uniqueness-list-md', 'build-uniqueness-list-rst'], ['en-US'])
+            if bu:
                 f.write_body('<div class="build-uniq-div"><span class="head">Build Uniqueness</span>')
                 f.write_body('<div class="build-uniq-data">')
-                for data in sorted(cmc.everything['build-uniqueness-list-rst'], key=lambda s: s.lower()):
+                for data in sorted([x.element.toHtmlLine().html for x in bu], key=lambda s: s.lower()):
                     f.write_body('<span class="data">')
-                    f.write_body(rst_line_to_html(data).html)
+                    f.write_body(data)
                     f.write_body('</span>')
                 f.write_body('</div></div>')
             release_count = 0
@@ -362,57 +365,49 @@ function hideTechnical(id) {
                 ';'.join(['''Array.prototype.forEach.call(document.getElementsByClassName('%s'), function(e){e.classList.toggle('rnhover', false)})''' % (s,) for s in identifiers]), #pylint: disable=C0301
                 '"',
             ])
-        def write_hlist(key, default, include_backstories=False, include_tickets=False):
-            notes = release.get('notes') or []
-            if not include_backstories:
-                # Erase notes from backstories, but keep their positions in the array:
-                notes = [{} if x.get('is-copied-from-backstory') else x for x in notes]
-            def line_formatter(node, notes):
-                base_func = seano_html_note_list_line_formatter_text_with_tickets if include_tickets \
-                    else seano_html_note_list_line_formatter_simple
-                result = base_func(node, notes)
-                styles = ['r%dp%d' % (release_notes_id, t) for t in node['tags']]
-                return '<span' + render_mouse_hover_toggle_logic(styles) + '>' + result + '</span>'
-            f.write_body(seano_render_html_note_list(notes, key, line_formatter=line_formatter) or default)
-        def write_plist(key, default):
-            did_write_notes = False
-            # ABK: The tag here is mirroring the behavior of seano_cascade_hlist()
-            tag = -1
-            for n in release.get('notes', None) or []:
-                tag = tag + 1 # Assume notes are traversed in the same order as in seano_cascade_hlist() (they are)
-                if n.get('is-copied-from-backstory'):
-                    continue
-                style = 'r%dp%d' % (release_notes_id, tag)
-                if key not in n:
-                    continue
-                txt = (n[key] or {}).get('en-US', None) or ''
-                if not txt:
-                    continue
-                f.write_body('<div')
-                f.write_body(render_mouse_hover_toggle_logic([style]))
-                f.write_body('>')
-                f.write_body(rst_to_html(txt).html)
-                f.write_body('</div>')
-                did_write_notes = True
-            if not did_write_notes:
+
+        def write_hlist(hlist, default, is_blob_field=False, include_tickets=False):
+            if not hlist:
                 f.write_body(default)
+                return
+            def block_formatter(node):
+                base_func = seano_html_hlist_blob_formatter_simple
+                result = base_func(node=node)
+                styles = ['r%dp%s' % (release_notes_id, id) for id in node.note_ids]
+                return '<div' + render_mouse_hover_toggle_logic(styles) + '>' + result + '</div>'
+            def line_formatter(node):
+                base_func = seano_html_hlist_line_formatter_text_with_tickets(notes=release.get('notes') or []) if include_tickets \
+                    else seano_html_hlist_line_formatter_simple
+                result = base_func(node=node)
+                styles = ['r%dp%s' % (release_notes_id, id) for id in node.element.tags]
+                return '<span' + render_mouse_hover_toggle_logic(styles) + '>' + result + '</span>'
+            f.write_body(seano_render_html_hlist(hlist, is_blob_field=is_blob_field, block_formatter=block_formatter, line_formatter=line_formatter))
         f.write_body('<div id="release-notes-%d" class="release-notes-body" style="display:none">' %(release_notes_id,))
         f.write_body('<div class="public-release-notes">')
         backstory_clarification = ''
         if any([x.get('is-copied-from-backstory') for x in release.get('notes') or []]):
             backstory_clarification = ' <span class="clarification">(includes backstories)</span>'
         f.write_body('<h4>Public Release Notes' + backstory_clarification + '</h4>')
-        write_hlist(key='customer-short-loc-hlist-rst', default='<p><em>No public release notes</em></p>',
-                    include_backstories=True)
+        write_hlist(hlist=seano_read_hlist(notes=release.get('notes') or [],
+                                          keys=['customer-short-loc-hlist-md', 'customer-short-loc-hlist-rst'],
+                                          localizations=['en-US']),
+                    default='<p><em>No public release notes</em></p>')
         f.write_body('</div>')
         f.write_body('<div class="internal-release-notes">')
         f.write_body('<h4>Internal Release Notes</h4>')
-        write_hlist(key='employee-short-loc-hlist-rst', default='<p><em>No internal release notes</em></p>',
+        write_hlist(hlist=seano_read_hlist(notes=[x for x in release.get('notes') or [] if not x.get('is-copied-from-backstory')],
+                                          keys=['employee-short-loc-hlist-md', 'employee-short-loc-hlist-rst'],
+                                          localizations=['en-US']),
+                    default='<p><em>No internal release notes</em></p>',
                     include_tickets=True)
         f.write_body('</div>')
         f.write_body('<div class="custsrv-release-notes">')
         f.write_body('<h4>Member Care Notes</h4>')
-        write_plist(key='mc-technical-loc-rst', default='<p><em>No Member Care notes</em></p>')
+        write_hlist(hlist=seano_read_hlist(notes=[x for x in release.get('notes') or [] if not x.get('is-copied-from-backstory')],
+                                          keys=['mc-technical-loc-md', 'mc-technical-loc-rst'],
+                                          localizations=['en-US']),
+                    is_blob_field=True,
+                    default='<p><em>No Member Care notes</em></p>')
         f.write_body('</div>')
         f.write_body('</div>')
 
@@ -428,16 +423,14 @@ function hideTechnical(id) {
             f.write_body('<ul>')
             for note in notes_new_in_this_release:
                 f.write_body('<li><span class="note-head"><span class="internal-short">')
-                head = note.get('employee-short-loc-hlist-rst', {}).get('en-US', [None])[0]
-                if head and isinstance(head, dict):
-                    head = list(head.keys())[0]
-                f.write_body(rst_line_to_html(head or 'Internal release note missing').html)
-                f.write_body('</span>') # employee-short-loc-hlist-rst
+                head = seano_read_hlist([note], ['employee-short-loc-hlist-md', 'employee-short-loc-hlist-rst'], ['en-US']).first()
+                f.write_body(head.toHtmlLine().html or 'Internal release note missing')
+                f.write_body('</span>') # employee-short-loc-hlist-*
                 for t in note.get('tickets', None) or [None]: # None is used to indicate secret work
                     f.write_body('<span class="ticket">')
                     f.write_body(self.compile_ticket_url(t))
                     f.write_body('</span>')
-                technical = note.get('employee-technical-loc-rst', {}).get('en-US', '')
+                technical = seano_read_hlist([note], ['employee-technical-loc-md', 'employee-technical-loc-rst'], ['en-US'])
                 if technical:
                     tech_id = self._get_elem_uid()
                     f.write_body('<span class="ticket show-technical" id="show-technical-%d">' \
@@ -449,11 +442,11 @@ function hideTechnical(id) {
                 f.write_body('</span>') # note-head
                 if technical:
                     f.write_body('<div class="technical" id="technical-%d" style="display:none">' % (tech_id,))
-                    f.write_body(rst_to_html(technical).html)
+                    f.write_body(seano_render_html_hlist(technical, is_blob_field=True))
                     f.write_body('</div>')
                 f.write_body('<div class="testing">')
-                f.write_body(rst_to_html(note.get('qa-technical-loc-rst', {}).get('en-US', '')
-                                         or '`QA Notes missing`').html)
+                f.write_body(seano_render_html_hlist(seano_read_hlist([note], ['qa-technical-loc-md', 'qa-technical-loc-rst'], ['en-US']), is_blob_field=True)
+                             or SeanoMarkdown('*QA Notes missing*').toHtmlBlock().html)
                 f.write_body('</div></li>')
             f.write_body('</ul>')
         f.write_body('</div>')

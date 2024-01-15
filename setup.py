@@ -1,7 +1,59 @@
-docutils==0.16
-markdown
-Pygments>=2.12; python_version >= '3.7'
-Pygments<2.12; python_version < '3.7'
-pymdown-extensions>=9.3; python_version >= '3.7'
-pymdown-extensions<9.3; python_version < '3.7'
-pyyaml
+from setuptools import setup, find_packages
+from pathlib import Path
+
+setup(
+    name = 'seano_formatter_qa_notes',
+    version = '2.0.2',
+    author = 'Andrew Keller',
+    author_email = 'andrew@kellerfarm.com',
+    description = 'A Seano plugin that generates the QA Notes view',
+    long_description = Path('Readme.md').read_text(encoding='utf-8'),
+    long_description_content_type = 'text/markdown',
+    license = 'BSD 3-clause',
+    classifiers = [
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Natural Language :: English',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Topic :: Database',
+        'Topic :: Database :: Database Engines/Servers',
+        'Topic :: Database :: Front-Ends',
+        'Topic :: Documentation',
+        'Topic :: Documentation :: Sphinx',
+        'Topic :: File Formats',
+        'Topic :: File Formats :: JSON',
+        'Topic :: File Formats :: JSON :: JSON Schema',
+        'Topic :: Software Development',
+        'Topic :: Software Development :: Build Tools',
+        'Topic :: Software Development :: Documentation',
+        'Topic :: Software Development :: Internationalization',
+        'Topic :: Software Development :: Localization',
+        'Topic :: Software Development :: Quality Assurance',
+        'Topic :: Software Development :: Testing',
+        'Topic :: Software Development :: Testing :: Acceptance',
+        'Topic :: Software Development :: Version Control',
+        'Topic :: Software Development :: Version Control :: Git',
+        'Topic :: Utilities',
+    ],
+    packages = ['seano_formatter_qa_notes', 'seano_formatter_qa_notes.shared'],
+    package_dir = {
+        'seano_formatter_qa_notes': 'src/seano_formatter_qa_notes',
+        'seano_formatter_qa_notes.shared': 'shared/src/shared',
+    },
+    install_requires = '\n'.join([
+        Path('shared/vendor_setup_py_install_requires.txt').read_text(encoding='utf-8'),
+        # No additional dependencies specific to this Seano view
+    ]),
+    python_requires='>=3.0',
+)

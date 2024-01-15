@@ -1,0 +1,2 @@
+include Readme.md
+include shared/vendor_setup_py_install_requires.txt

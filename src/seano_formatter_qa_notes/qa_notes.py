@@ -5,7 +5,9 @@ Infrastructure to convert a seano query output file into what is known as the QA
 
 The public entry point here is the function named ``compile_qa_notes()``.
 """
+import argparse
 import datetime
+import sys
 from .shared.components import *
 from .shared.hlist import seano_read_hlist, SeanoUnlocalizedHListNode
 from .shared.html_buf import SeanoHtmlBuffer, html_escape as escape
@@ -452,11 +454,30 @@ function hideTechnical(id) {
         f.write_body('</div>')
 
 
-def compile_qa_notes(srcdata):
+def format_qa_notes(*args):
     '''
     Given a Json blob (in serialized form), return the contents of the corresponding QA Notes page.
 
     The QA Notes page is implemented using HTML+CSS+JS; as such, if you are going to save it to a file, you probably
     want to use a ``.html`` extension.
     '''
-    return QANotesRenderInfrastructure().run(srcdata)
+    parser = argparse.ArgumentParser()
+    parser.prog = ' '.join([parser.prog, 'format', 'qa_notes'])
+    parser.add_argument('--src', action='store', default='-', help='Input file; use a single hyphen for stdin; default is to use stdin')
+    parser.add_argument('--out', action='store', default='-', help='Output file; use a single hyphen for stdout; default is to use stdout')
+
+    ns = parser.parse_args(args)
+
+    if ns.src in ['-']:
+        data = sys.stdin.read()
+    else:
+        with open(ns.src, 'r') as f:
+            data = f.read()
+
+    result = QANotesRenderInfrastructure().run(data)
+
+    if ns.out in ['-']:
+        sys.stdout.write(result)
+    else:
+        with open(ns.out, 'w') as f:
+            f.write(result)

@@ -1,9 +1,9 @@
 import unittest
 import yaml
 
-from ..hlist import *
-from ..hlist import _parse_hlist_node
-from ..markup import SeanoMarkdown, SeanoReStructuredText
+from seano_formatter_qa_notes.shared.hlist import *
+from seano_formatter_qa_notes.shared.hlist import _parse_hlist_node
+from seano_formatter_qa_notes.shared.markup import SeanoMarkdown, SeanoReStructuredText
 
 
 def SAMPLE_FILES():

@@ -1,206 +1,115 @@
-Stock ``seano`` Views
-====================
+QA Notes Formatter Plugin for Seano
+===================================
 
-Zarf ships with a number of :doc:`seano` views that other projects may use to manufacture standardized documentation.
+This project provides a Seano formatter named "QA Notes" which, given a query of
+a Seano database, will generate a self-contained single-file HTML file
+presenting an overview of what changes need Quality Assurance (QA) attention.
 
-.. note::
+Intended Use Cases
+------------------
 
-    Not all views are for everyone.  Most views are designed to solve specific problems.
+The intended use case of this Seano View is one where it is easy to forget to
+tell QA of one or more changes in the build you just sent them.  This can happen
+because you spent a month working on a single feature and your memory is fuzzy
+on the early parts, or because you have multiple coworkers and you aren't an
+expert in what they did.  Regardless of why you forgot to tell QA about some
+details, the common risks include:
 
-    People who work in projects: you should never feel pressured to use a view just because it exists here in Zarf.
+1.  QA can miss bugs, leading to the bugs reaching production
+1.  Product Managers can forget to inform other departments of changes
+1.  UX and/or Marketing can forget to inform customers of changes
+1.  When customers notice changes before employees do, it can make the project
+    look disorganized or unreliable.
 
-    People who add views to Zarf: be specific about what problem the view is trying to solve so that other people
-    working in projects can have an understanding of whether or not that view is good/bad for them to use.
+Typical Workflow
+----------------
 
-Group A Views
--------------
+At time of development, a developer writes testing notes in Seano.  The notes
+should be as thorough as reasonable: assume you might be on vacation when QA is
+reading it.
 
-A number of views share similar schemas in ``seano``.  To make documentation easier to scan and compare, this
-group of views are all documented here, all at once.
-
-These views include:
-
-* QA Notes *(standalone single-file HTML)*
-
-Intended use cases
-^^^^^^^^^^^^^^^^^^
-
-* QA Notes
-
-  Your release cycle is so long that by the time QA gets a build for testing/release, it's easy
-  to forget some of the initial changes that were made.
-
-  When you forget changes, a number of things happen:
-
-  * QA forgets to test things, which can lead to bugs getting released
-  * Product Managers forget to inform Member Care of changes
-  * When bugs are released for changes that nobody remembered, a project can look disorganized
-    or unreliable
-
-  At time of development, a developer writes testing notes in ``seano``.  The notes written should
-  be as thorough as is reasonable; you should always assume that all of your memory will be erased
-  by the time QA sees these changes.
-
-  Later, when QA gets a build, the build includes a compiled HTML file containing all the notes
-  written in this release.  When QA goes to look at the build, they also look at the QA Notes, and
-  they have all of the best past versions of you talking to them at once, in exquisite detail.
-
+Later, when QA gets a build, the build includes a machine-written HTML file
+containing all of the testing notes written in this release, colloquially called
+_the QA Notes_.  QA reads these notes to know what to test.
 
 Schema
-^^^^^^
+------
 
-The *Group A Views*, as a group, use this schema for release objects inside ``seano-config.yaml``.
-Not every individual view in this group uses every part of this schema.  All of the keys are
-optional; as general practice, if one of the keys is not applicable to the release, drop the
-entire key from the release.
+The QA Notes view uses this schema for notes:
 
-.. code-block:: yaml
-   :caption: ``seano-config.yaml``
+```yaml
+---
+# (OPTIONAL) URLs to an external ticketing system
+tickets:
+- https://example.com/tickets/EXAMPLE-1234
 
-   releases: # The top-level releases list in seano-config.yaml
+# (OPTIONAL) Customer-facing short release notes
+customer-short-loc-hlist-md: # (or `customer-short-loc-hlist-rst` for RST)
+  en-US:
+  - Short sentence explaining this change to customers
+  - "This is an hlist, which means:":
+    - you can express a hierarchy here
 
-   - name: 1.2.3 # Declaration of example release
+# (REQUIRED) Employee-facing short release notes
+employee-short-loc-hlist-md: # (or `employee-short-loc-hlist-rst` for RST)
+  en-US:
+  - Short sentence explaining this change to employees
+  - "This is an hlist, which means:":
+    - you can express a hierarchy here
 
-     employee-prologue-loc-md:
-       en-US: |
-         You may type text into here that describes the release
-         as a whole.  This field is typically printed directly
-         above internal release notes.
+# (OPTIONAL) Employee-facing long technical discussion
+employee-technical-loc-md: # (or `employee-technical-loc-rst` for RST)
+  en-US: |
+    What was the problem?  What solutions did you reject?  Why did you choose
+    this solution?  What might go wrong?  What can Ops do to resolve an outage
+    over the weekend?
 
-     # Events are stupid -- *very stupid*.  They are an ordered
-     # list of event names, with corresponding dates.  Both the
-     # event names and dates are *arbitrary strings!*  The dates
-     # are currently not parsed, but may be in the future.  The
-     # event names are non-functional *except* that release
-     # statuses have certain pre-set colors for certain event
-     # names.  The colors can be customized.  You may have as
-     # few or as many events as you want on a release.
-     events:
-     - public beta: 1/1/2021
-     - general release: 1/10/2021
+    This field is a single large Markdown blob.  Explaining details is good.
 
+# (OPTIONAL) Customer Service-facing long technical discussion
+mc-technical-loc-md:  # (or `mc-technical-loc-rst` for RST)
+  en-US: |
+    What was the problem?  What is the solution?  What might go wrong?  How can
+    Customer Service fix a problem over the weekend?
 
-The *Group A Views*, as a group, use this schema for notes.  Not every individual view uses every
-part of the schema.  All of the keys are optional; as general practice, if one of the keys is not
-applicable to the change, drop the entire key from the note.  That said, the
-``employee-short-loc-hlist-md`` key is used as a title in a lot of views, so you probably don't
-want to drop that one.
+    This field is a single large Markdown blob.  Remember that Customer Service
+    watches over many products; be specific, but also be terse.
 
-All of these keys are included in the default ``seano`` note template, so you don't have to remember them.
+# (REQUIRED) QA-facing long technical discussion
+qa-technical-loc-md:  # (or `qa-technical-loc-rst` for RST)
+  en-US: |
+    What new features need to be tested?  What old features need to be
+    regression-tested?
 
-.. code-block:: yaml
+    QA uses this section to perform QA, and also as a "diff" to update their
+    own test plan archives.
 
-    ---
-    risk: One of low, medium, high; does not reflect deployment tricks to lower risk
+    This field is a single large Markdown blob.  Explaining details is good.
+    Assume that QA has zero knowledge of *what* to test, but that given that
+    knowledge, they know *how* to test it.  Be specific in descriptions;
+    avoid generalizations when practical.  Be as technical as you want.
+    If QA has questions, they'll ask you.
+```
 
-    tickets:
-    - URL to JIRA ticket
+Testing Locally
+---------------
 
-    min-supported-os:        # Only include this section if you changed the minimum supported OS
-      os1: "version number"  # You must re-specify all supported OSs every time you change a value
-      os2: "version number"  # OS versions should be quoted to avoid yaml assuming numeric type
+Starting from scratch, this is how to set up local unit testing:
 
-    max-supported-os:        # Only include this section if you changed the maximum supported OS
-      os1: "version number"  # You must re-specify all supported OSs every time you change a value
-      os2: "version number"  # OS versions should be quoted to avoid yaml assuming numeric type
+```sh
+# Create and enter a virtual environment:
+virtualenv .venv
+. .venv/bin/activate
 
-    employee-milestones-list-loc-md:
-    - en-US: Short description of a big change
-    - en-US: Use sparingly, because these are printed prominently
+# Install this Seano formatter plugin in the virtual environment in "editable mode"
+pip install -e .
 
-    customer-short-loc-hlist-md:
-      en-US:
-      - Short sentence explaining this change to customers
-      - "This is an hlist, which means:":
-        - you can express a hierarchy here
-      - This text usually comes from the ``#workroom-releasenotes`` channel in Slack
+# Install extra dependencies needed by the unit tests:
+pip install -r ci_utest_requirements.txt
+```
 
-    employee-short-loc-hlist-md:
-      en-US:
-      - Short sentence explaining this change to CE employees
-      - "This is an hlist, which means:":
-        - you can express a hierarchy here
-      - This text usually comes from the developer who made the change
-      - "For consistency, use imperative tense, without a full stop, such as:":
-        - Cook the bacon
-        - Don't crash when bacon is not loaded
-        - You usually only need one line; these are just examples
+Then, going forward, you can run unit tests like this:
 
-    employee-technical-loc-md:
-      en-US: |
-        You are talking to your future self and Ops.
-
-        What was the problem?  What solutions did you reject?  Why did you choose
-        this solution?  What might go wrong?  What can Ops do to resolve an outage
-        over the weekend?
-
-        This field is a single large Markdown blob.  Explaining details is good.
-
-    mc-technical-loc-md:
-      en-US: |
-        You are talking to a Tier-2 Member Care Representative.
-
-        What changed?  How does this impact users?  How does this impact MC?
-
-        Assume something *is going wrong*.  What caused it?  How can MC resolve it
-        over the weekend?
-
-        T2's have a dedicated block of time for catching up on release notes for
-        all products at CE.  They oversee many products, so we try to keep this
-        section as blunt and brief as is practical.  T2's are technically inclined,
-        so feel free to use technical jargon to shorten explanations.
-
-        Don't be afraid to be terse; if a T2 has questions, they'll often hop over
-        to the `employee-technical-loc-md` section to look for more details.
-
-        Sometimes a screenshot is a great way to shorten an explanation:
-
-        <img width=100 alt="red heart with black outline" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8cGF0aCBkPSJNNTAsMzBjOS0yMiA0Mi0yNCA0OCwwYzUsNDAtNDAsNDAtNDgsNjVjLTgtMjUtNTQtMjUtNDgtNjVjIDYtMjQgMzktMjIgNDgsMCB6IiBmaWxsPSIjRjAwIiBzdHJva2U9IiMwMDAiLz4KPC9zdmc+" />
-
-        If what you want to write here is identical to what you've already written
-        in another section, you can use Yaml's reference syntax to copy another
-        section.  You can copy any `*-loc-md` field, or any `*-loc-hlist-md` field.
-        Example:
-
-        ```yaml
-        employee-short-loc-hlist-md: &empl-short
-          en-US: #                   ^^^^^^^^^^^  Mark section to copy
-          - Hello, this is an internal release note
-
-        mc-technical-loc-md: *empl-short
-        #                    ^^^^^^^^^^^  Copy contents of the marked section
-        ```
-
-        If this change doesn't impact customers or Member Care, or is too obscure
-        to mention, then delete this section.
-
-    qa-technical-loc-md:
-      en-US: |
-        You are talking to QA.
-
-        What new features need to be tested?  What old features need to be
-        regression-tested?
-
-        QA uses this section to perform QA, and also as a "diff" to update their
-        own test plan archives.
-
-        This field is a single large Markdown blob.  Explaining details is good.
-        Assume that QA has zero knowledge of *what* to test, but that given that
-        knowledge, they know *how* to test it.  Be specific in descriptions;
-        avoid generalizations when practical.  Be as technical as you want.
-        If QA has questions, they'll ask you.
-
-
-Generating Group A Views
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you create all of the following files in your project, then a build of your project
-will produce all of the Group A Views.
-
-You do not need to compile all of these views for any of them to work.
-
-.. code-block:: python
-   :caption: ``docs/qa-notes/wscript_build``
-
-   # Creates a file named `qa-notes.html`
-   bld.compile_qa_notes()
+```sh
+pytest
+```

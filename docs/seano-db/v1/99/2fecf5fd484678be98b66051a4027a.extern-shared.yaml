@@ -1,0 +1,33 @@
+---
+x-seano-relpath-to-original: ../../shared/docs/seano-db/v1/99/2fecf5fd484678be98b66051a4027a.yaml
+x-seano-sha1-of-original: 58edec7dd3b5939e69a8a125c2fc9b899c31b0c7
+
+######## NOTICE ########
+# This note is a *copy* of a note from an external database.
+# You probably want to edit the original rather than this
+# copy, so that other projects inherit your change.
+---
+risk: low
+
+customer-short-loc-hlist-md:
+  en-US:
+  - Add support for Jira Cloud ticket URLs, et al.
+
+employee-short-loc-hlist-md:
+  en-US:
+  - Add support for Jira Cloud ticket URLs, et al.
+  - Never fail to generate a ticket display name
+
+employee-technical-loc-md:
+  en-US: |
+    Jira Cloud ticket URLs can now be used for tickets.
+
+    As part of this change, the algorithm was made more generic, and failure
+    tolerant.  Unsupported URLs are now displayed as-is, rather than issuing a
+    build failure.
+
+qa-technical-loc-md:
+  en-US: |
+    No automated tests exist for the impacted code, so we must load a database
+    with a number of different ticket URLs, and make sure they all still render
+    properly.  The `href` logic was not modified; only the display text was.

@@ -10,7 +10,7 @@ jobs:
     steps:
 
     - name: Checkout Repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -23,7 +23,7 @@ jobs:
         python -m build
 
     - name: Publish Package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: dist
         path: dist
@@ -32,47 +32,81 @@ jobs:
   test:
     strategy:
       matrix:
-        python-version:
-        - '3.12'
-        - '3.11'
-        - '3.10'
-        - '3.9'
-        - '3.8'
-        - '3.7'
-        platform:
-        - name: Ubuntu
+        system:
+        - python: '3.14'
+          platform: Linux
           runs-on: ubuntu-latest
-        - name: Windows
+        - python: '3.14'
+          platform: Windows
+          runs-on: windows-latest
+        - python: '3.13'
+          platform: Linux
+          runs-on: ubuntu-latest
+        - python: '3.13'
+          platform: Windows
+          runs-on: windows-latest
+        - python: '3.12'
+          platform: Linux
+          runs-on: ubuntu-latest
+        - python: '3.12'
+          platform: Windows
+          runs-on: windows-latest
+        - python: '3.11'
+          platform: Linux
+          runs-on: ubuntu-latest
+        - python: '3.11'
+          platform: Windows
+          runs-on: windows-latest
+        - python: '3.10'
+          platform: Linux
+          runs-on: ubuntu-latest
+        - python: '3.10'
+          platform: Windows
+          runs-on: windows-latest
+        - python: '3.9'
+          platform: Linux
+          runs-on: ubuntu-latest
+        - python: '3.9'
+          platform: Windows
+          runs-on: windows-latest
+        - python: '3.8'
+          platform: Linux
+          runs-on: ubuntu-latest
+        - python: '3.8'
+          platform: Windows
+          runs-on: windows-latest
+        - python: '3.7'
+          platform: Linux
+          runs-on: ubuntu-22.04 # keep limping along so long as GH offers this older image
+        - python: '3.7'
+          platform: Windows
           runs-on: windows-latest
 
-    name: Test Py ${{ matrix.python-version }} on ${{ matrix.platform.name }}
-    runs-on: ${{ matrix.platform.runs-on }}
+    name: Test Py ${{ matrix.system.python }} on ${{ matrix.system.platform }}
+    runs-on: ${{ matrix.system.runs-on }}
     needs: package
     timeout-minutes: 3
 
     steps:
-    - name: Install Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Install Python ${{ matrix.system.python }}
+      uses: actions/setup-python@v6
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.system.python }}
 
     - name: Checkout Repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: recursive
 
     - name: Download Packaged Distribution
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
-        merge-multiple: true
-        path: dist
+        name: dist
 
     - name: Test
       run: |
         ${{ (runner.os == 'Windows')
-            && '$qa_notes_wheel = Get-ChildItem .\dist\seano_formatter_qa_notes-*-py3-*.whl | Select-Object -Expand FullName'
-            || 'qa_notes_wheel=dist/seano_formatter_qa_notes-*-py3-*.whl' }}
-        pip install $qa_notes_wheel
-
-        pip install -r ci_utest_requirements.txt
+            && '$qa_notes_wheel = Get-ChildItem .\seano_formatter_qa_notes-*-py3-*.whl | Select-Object -Expand FullName'
+            || 'qa_notes_wheel=seano_formatter_qa_notes-*-py3-*.whl' }}
+        pip install $qa_notes_wheel -r ci_utest_requirements.txt
         python -m pytest

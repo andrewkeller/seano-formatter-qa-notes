@@ -1,3 +1,9 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = ["setuptools", "wheel"]
+
+[tool.pytest.ini_options]
+# shared/ is a submodule whose tests import `shared.*` directly — it doesn't know
+# it's embedded here as `seano_formatter_qa_notes.shared`. This path entry lets
+# pytest resolve those imports against the submodule source tree.
+pythonpath = ["shared/src"]
